@@ -28,29 +28,33 @@ RUN INTERACTIVE=false CI=true MB_EDITION=$MB_EDITION bin/build.sh
 ## jar from the previous stage rather than the local build
 ## we're not yet there to provide an ARM runner till https://github.com/adoptium/adoptium/issues/96 is ready
 
-FROM --platform=linux/amd64 eclipse-temurin:11-jre-alpine as runner
+FROM eclipse-temurin:11-jre-jammy as runner
 
-ENV FC_LANG en-US LC_CTYPE en_US.UTF-8
+ENV FC_LANG=en-US LC_CTYPE=en_US.UTF-8
 
-# dependencies
-RUN apk add -U bash ttf-dejavu fontconfig curl java-cacerts && \
-    apk upgrade && \
-    rm -rf /var/cache/apk/* && \
-    mkdir -p /app/certs && \
-    curl https://s3.amazonaws.com/rds-downloads/rds-combined-ca-bundle.pem -o /app/certs/rds-combined-ca-bundle.pem  && \
-    /opt/java/openjdk/bin/keytool -noprompt -import -trustcacerts -alias aws-rds -file /app/certs/rds-combined-ca-bundle.pem -keystore /etc/ssl/certs/java/cacerts -keypass changeit -storepass changeit && \
-    curl https://cacerts.digicert.com/DigiCertGlobalRootG2.crt.pem -o /app/certs/DigiCertGlobalRootG2.crt.pem  && \
-    /opt/java/openjdk/bin/keytool -noprompt -import -trustcacerts -alias azure-cert -file /app/certs/DigiCertGlobalRootG2.crt.pem -keystore /etc/ssl/certs/java/cacerts -keypass changeit -storepass changeit && \
-    mkdir -p /plugins && chmod a+rwx /plugins
+# Dependencies
+RUN apt-get update && \
+  apt-get upgrade -y && \
+  apt-get install -y ca-certificates ca-certificates-java fonts-dejavu && \
+  apt-get clean && \
+  curl https://s3.amazonaws.com/rds-downloads/rds-combined-ca-bundle.pem -o /usr/local/share/ca-certificates/rds-combined-ca-bundle.pem && \
+  curl https://cacerts.digicert.com/DigiCertGlobalRootG2.crt.pem -o /usr/local/share/ca-certificates/DigiCertGlobalRootG2.crt.pem && \
+  update-ca-certificates && \
+  mkdir -p /plugins && chmod a+rwx /plugins && \
+  keytool -list -cacerts
 
 RUN curl https://github.com/starburstdata/metabase-driver/releases/download/4.0.0/starburst-4.0.0.metabase-driver.jar -o /plugins/starburst-4.0.0.metabase-driver.jar
 
-# add Metabase script and uberjar
-COPY --from=builder /home/node/target/uberjar/metabase.jar /app/
-COPY bin/docker/run_metabase.sh /app/
+# add Metabase jar & add our run script to the image
+COPY ./metabase.jar ./run_metabase.sh /app/
 
 # expose our default runtime port
 EXPOSE 3000
+
+# if you have an H2 database that you want to initialize the new Metabase
+# instance with, mount it in the container as a volume that will match the
+# pattern /app/initial*.db:
+# $ docker run ... -v $PWD/metabase.db.mv.db:/app/initial.db.mv.db ...
 
 # run it
 ENTRYPOINT ["/app/run_metabase.sh"]
