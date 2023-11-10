@@ -11,6 +11,7 @@ import {
   AppBarRoot,
   AppBarInfoContainer,
   AppBarProfileLinkContainer,
+  AppBarLogoText,
 } from "./AppBarLarge.styled";
 
 export interface AppBarLargeProps {
@@ -56,6 +57,7 @@ const AppBarLarge = ({
           isNavBarEnabled={isNavBarEnabled}
           onToggleClick={onToggleNavbar}
         />
+        <AppBarLogoText>{`DeepEyes`}</AppBarLogoText>
         <AppBarInfoContainer
           isVisible={!isNavBarVisible || isQuestionLineageVisible}
         >

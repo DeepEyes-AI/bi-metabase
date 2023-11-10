@@ -9,7 +9,7 @@ import { PublicQuestion } from "metabase/public/containers/PublicQuestion";
 import PublicDashboard from "metabase/public/containers/PublicDashboard";
 
 export const getRoutes = store => (
-  <Route title={t`Metabase`}>
+  <Route title={t`DeepEyes`}>
     <Route path="public" component={PublicApp}>
       <Route path="action/:uuid" component={PublicAction} />
       <Route path="question/:uuid" component={PublicQuestion} />

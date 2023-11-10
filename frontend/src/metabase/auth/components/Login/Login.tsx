@@ -27,7 +27,7 @@ export const Login = ({ params, location }: LoginProps): JSX.Element => {
   return (
     <AuthLayout>
       <Box c="text.2" fz="1.25rem" fw="bold" lh="1.5rem" ta="center">
-        {t`Sign in to Metabase`}
+        {t`Sign in to DeepEyes`}
       </Box>
       {selection && selection.Panel && (
         <Box mt="2.5rem">
