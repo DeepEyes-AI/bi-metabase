@@ -58,3 +58,9 @@ export const AppBarInfoContainer = styled.div<AppBarInfoContainerProps>`
 export const AppBarProfileLinkContainer = styled.div`
   color: ${color("text-light")};
 `;
+
+export const AppBarLogoText = styled.div`
+  margin-left: 0rem;
+  font-weight: 400;
+  font-family: Poppins-Regular, Poppins;
+`;
