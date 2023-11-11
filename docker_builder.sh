@@ -1,4 +1,4 @@
-docker rm -f metabase_builde
+docker rm -f metabase_builder
 docker build -t metabase_builder:latest .
 docker run -it \
     --name metabase_builder \

@@ -72,7 +72,7 @@ function ProfileLink({ user, adminItems, onLogout }) {
         event: `Navbar;Profile Dropdown;About ${tag}`,
       },
       {
-        title: t`About Metabase`,
+        title: t`About DeepEyes`,
         icon: null,
         action: () => openModal("about"),
         event: `Navbar;Profile Dropdown;About ${tag}`,
@@ -118,11 +118,9 @@ function ProfileLink({ user, adminItems, onLogout }) {
             <h2
               style={{ fontSize: "1.75em" }}
               className="text-dark"
-            >{t`Thanks for using Metabase!`}</h2>
+            >{t`Thanks for using DeepEyes!`}</h2>
             <div className="pt2">
-              <h3 className="text-dark mb1">
-                {t`You're on version`} {tag}
-              </h3>
+              <h3 className="text-dark mb1">{t`You're on version 1.0.0`}</h3>
               <p className="text-medium text-bold">
                 {t`Built on`} {date}
               </p>
@@ -143,10 +141,10 @@ function ProfileLink({ user, adminItems, onLogout }) {
               className="p2 h5 text-centered text-medium border-top"
             >
               <span className="block">
-                <span className="text-bold">Metabase</span>{" "}
-                {t`is a Trademark of`} Metabase, Inc
+                <span className="text-bold">DeepEyes</span>{" "}
+                {t`is a Bussiness Intelligence builder for Web3`}
               </span>
-              <span>{t`and is built with care by a team from all across this pale blue dot.`}</span>
+              <span>{t`and is a data solution for web3 comprehensive, meets all needs, easy to use.`}</span>
             </div>
           )}
         </Modal>
