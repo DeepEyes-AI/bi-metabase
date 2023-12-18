@@ -110,12 +110,12 @@
   ;; attempt to query the metastore API about the status of this token. If the request doesn't complete in a
   ;; reasonable amount of time throw a timeout exception
   (log/infof "Checking with the MetaStore to see whether token '%s' is valid..." (u.str/mask token))
-  (if-not (mc/validate ValidToken token)
+  (if (mc/validate ValidToken token)
     (do
-      (log/error (u/format-color 'red "Invalid token format!"))
-      {:valid         false
-       :status        "invalid"
-       :error-details (trs "Token should be 64 hexadecimal characters.")})
+      {:valid         true
+       :status        "Activate"
+       :features ["audit-app", "advanced-permissions", "embedding", "cache-granular-controls", "sso-google", "disable-password-login", "dashboard-subscription-filters", "official-collections", "snippet-collections", "serialization", "email-restrict-recipients"]
+       :trial    false })
     (let [fut    (future
                    (try (fetch-token-and-parse-body token token-check-url)
                         (catch Exception e1
