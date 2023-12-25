@@ -3,5 +3,5 @@ cd /home/node
 git config --global --add safe.directory /home/node
 export INTERACTIVE=false 
 export CI=true 
-export MB_EDITION=oss
+export MB_EDITION=ee
 bin/build.sh
