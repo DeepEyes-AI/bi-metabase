@@ -7,6 +7,20 @@
   --card-scalar-text-xl: 3.4em;
 }
 
+.stacking-context::after {
+  content: "";
+  display: block;
+  background-image: url("../images/logo.png");
+  background-repeat: no-repeat;
+  background-position: center;
+  opacity: 0.2;
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  bottom: 0;
+}
+
 .Card {
   position: relative;
 }
