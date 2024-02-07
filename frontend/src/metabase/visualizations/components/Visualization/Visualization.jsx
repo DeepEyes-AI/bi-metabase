@@ -465,10 +465,7 @@ class Visualization extends PureComponent {
         hasHeaderContent &&
         (loading || error || noResults || isHeaderEnabled)) ||
       (replacementContent && (dashcard.size_y !== 1 || isMobile));
-
-    const time = calculateTimeDifference(
-      this.props?.dashcard?.card?.updated_at,
-    );
+    const time = calculateTimeDifference(this.props?.dashcard?.updated_at);
     return (
       <ErrorBoundary>
         <VisualizationRoot
@@ -536,50 +533,85 @@ class Visualization extends PureComponent {
                     : null
                 }
               />
-
-              <Tooltip tooltip={`Last updated: ${time}`}>
-                <div
+              {this.props?.dashcard?.card?.display !== "scalar" ? (
+                <img
+                  src={require("./images/logo-full.png")}
+                  alt="logo"
                   style={{
                     position: "absolute",
-                    right: "30px",
-                    top:
-                      this.props?.dashcard?.card?.display !== "table"
-                        ? "25px"
-                        : "-8px",
-                    backgroundColor: "#e3fbf3",
-                    color: "#35bf7d",
-                    fontSize: "12px",
-                    display: "flex",
-                    alignItems: "center",
-                    borderRadius: "5px",
-                    padding: "1px 5px 1px 5px",
-                    cursor: "pointer",
+                    opacity: 0.2,
+                    top: 0,
+                    right: 0,
+                    left: 0,
+                    bottom: 0,
+                    pointerEvents: "none",
+                    userSelect: "none",
+                    margin: "auto",
                   }}
-                >
-                  {time}
-                  <svg
-                    style={{ marginLeft: "5px" }}
-                    width="12"
-                    height="12"
-                    viewBox="0 0 12 12"
-                    fill="none"
-                    xmlns="http://www.w3.org/2000/svg"
+                />
+              ) : (
+                <img
+                  src={require("./images/logo.png")}
+                  alt="logo"
+                  style={{
+                    position: "absolute",
+                    opacity: 0.2,
+                    top: 0,
+                    right: 0,
+                    left: 0,
+                    bottom: 0,
+                    pointerEvents: "none",
+                    userSelect: "none",
+                    margin: "auto",
+                  }}
+                />
+              )}
+
+              {!!time && (
+                <Tooltip tooltip={`Last updated: ${time}`}>
+                  <div
+                    style={{
+                      position: "absolute",
+                      right: "35px",
+                      top:
+                        this.props?.dashcard?.card?.display !== "table"
+                          ? "8px"
+                          : "-24px",
+                      backgroundColor: "#e3fbf3",
+                      color: "#35bf7d",
+                      fontSize: "12px",
+                      display: "flex",
+                      alignItems: "center",
+                      borderRadius: "5px",
+                      padding: "1px 5px 1px 5px",
+                      cursor: "pointer",
+                    }}
                   >
-                    <path
-                      d="M2.55469 9.44531C2.12344 9.01406 2.40938 8.10937 2.18906 7.57969C1.96875 7.05 1.125 6.58594 1.125 6C1.125 5.41406 1.95938 4.96875 2.18906 4.42031C2.41875 3.87188 2.12344 2.98594 2.55469 2.55469C2.98594 2.12344 3.89063 2.40938 4.42031 2.18906C4.95 1.96875 5.41406 1.125 6 1.125C6.58594 1.125 7.03125 1.95938 7.57969 2.18906C8.12812 2.41875 9.01406 2.12344 9.44531 2.55469C9.87656 2.98594 9.59063 3.89063 9.81094 4.42031C10.0313 4.95 10.875 5.41406 10.875 6C10.875 6.58594 10.0406 7.03125 9.81094 7.57969C9.58125 8.12812 9.87656 9.01406 9.44531 9.44531C9.01406 9.87656 8.10937 9.59063 7.57969 9.81094C7.05 10.0313 6.58594 10.875 6 10.875C5.41406 10.875 4.96875 10.0406 4.42031 9.81094C3.87188 9.58125 2.98594 9.87656 2.55469 9.44531Z"
-                      stroke="currentColor"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    ></path>
-                    <path
-                      d="M8.0625 4.875L5.31094 7.5L3.9375 6.1875"
-                      stroke="currentColor"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    ></path>
-                  </svg>
-                </div>
-              </Tooltip>
+                    {time}
+                    <svg
+                      style={{ marginLeft: "5px" }}
+                      width="12"
+                      height="12"
+                      viewBox="0 0 12 12"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        d="M2.55469 9.44531C2.12344 9.01406 2.40938 8.10937 2.18906 7.57969C1.96875 7.05 1.125 6.58594 1.125 6C1.125 5.41406 1.95938 4.96875 2.18906 4.42031C2.41875 3.87188 2.12344 2.98594 2.55469 2.55469C2.98594 2.12344 3.89063 2.40938 4.42031 2.18906C4.95 1.96875 5.41406 1.125 6 1.125C6.58594 1.125 7.03125 1.95938 7.57969 2.18906C8.12812 2.41875 9.01406 2.12344 9.44531 2.55469C9.87656 2.98594 9.59063 3.89063 9.81094 4.42031C10.0313 4.95 10.875 5.41406 10.875 6C10.875 6.58594 10.0406 7.03125 9.81094 7.57969C9.58125 8.12812 9.87656 9.01406 9.44531 9.44531C9.01406 9.87656 8.10937 9.59063 7.57969 9.81094C7.05 10.0313 6.58594 10.875 6 10.875C5.41406 10.875 4.96875 10.0406 4.42031 9.81094C3.87188 9.58125 2.98594 9.87656 2.55469 9.44531Z"
+                        stroke="currentColor"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      ></path>
+                      <path
+                        d="M8.0625 4.875L5.31094 7.5L3.9375 6.1875"
+                        stroke="currentColor"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      ></path>
+                    </svg>
+                  </div>
+                </Tooltip>
+              )}
             </div>
           )}
           <ChartTooltip series={series} hovered={hovered} settings={settings} />

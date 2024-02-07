@@ -18,7 +18,7 @@ export function calculateTimeDifference(pastDate: string): string {
   );
 
   if (daysDifference > 0 && hoursDifference > 0) {
-    return daysDifference + "d - " + hoursDifference + "h";
+    return daysDifference + "d " + hoursDifference + "h";
   } else if (hoursDifference >= 0) {
     return hoursDifference + "h";
   } else {
