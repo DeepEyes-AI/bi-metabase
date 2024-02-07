@@ -465,7 +465,9 @@ class Visualization extends PureComponent {
         hasHeaderContent &&
         (loading || error || noResults || isHeaderEnabled)) ||
       (replacementContent && (dashcard.size_y !== 1 || isMobile));
-    const time = calculateTimeDifference(this.props?.dashcard?.updated_at);
+    const time = calculateTimeDifference(
+      this.props?.dashboard?.updated_at ?? this.props?.dashboard?.created_at,
+    );
     return (
       <ErrorBoundary>
         <VisualizationRoot
