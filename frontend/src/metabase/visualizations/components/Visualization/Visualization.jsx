@@ -36,6 +36,8 @@ import ErrorBoundary from "metabase/ErrorBoundary";
 import { isRegularClickAction } from "metabase/visualizations/types";
 import Tooltip from "metabase/core/components/Tooltip";
 import { calculateTimeDifference } from "metabase/utils/utils";
+import { DashboardApi, maybeUsePivotEndpoint } from "metabase/services";
+import { fetchDataOrError } from "metabase/dashboard/utils";
 import Question from "metabase-lib/Question";
 import { datasetContainsNoResults } from "metabase-lib/queries/utils/dataset";
 import { memoizeClass } from "metabase-lib/utils";
@@ -80,6 +82,7 @@ class Visualization extends PureComponent {
     series: null,
     visualization: null,
     computedSettings: {},
+    lastUpdated: null,
   };
 
   UNSAFE_componentWillMount() {
@@ -100,8 +103,29 @@ class Visualization extends PureComponent {
     }
   }
 
-  componentDidMount() {
+  async componentDidMount() {
     this.updateWarnings();
+    const card = this.state.series[0].card;
+    const dashcard = this.props.dashcard;
+
+    const result = await fetchDataOrError(
+      maybeUsePivotEndpoint(
+        DashboardApi.cardQuery,
+        card,
+      )({
+        dashboardId: dashcard.dashboard_id,
+        dashcardId: dashcard.id,
+        cardId: this.state.series[0].card.id,
+        parameters: [],
+        dashboard_id: dashcard.dashboard_id,
+      }),
+    );
+    this.setState({
+      ...this.state,
+      lastUpdated: calculateTimeDifference(
+        result?.updated_at ?? result?.started_at,
+      ),
+    });
   }
 
   componentDidUpdate(prevProps, prevState) {
@@ -465,9 +489,7 @@ class Visualization extends PureComponent {
         hasHeaderContent &&
         (loading || error || noResults || isHeaderEnabled)) ||
       (replacementContent && (dashcard.size_y !== 1 || isMobile));
-    const time = calculateTimeDifference(
-      this.props?.dashboard?.updated_at ?? this.props?.dashboard?.created_at,
-    );
+
     return (
       <ErrorBoundary>
         <VisualizationRoot
@@ -569,8 +591,8 @@ class Visualization extends PureComponent {
                 />
               )}
 
-              {!!time && (
-                <Tooltip tooltip={`Last updated: ${time}`}>
+              {this.state.lastUpdated && (
+                <Tooltip tooltip={`Last updated: ${this.state.lastUpdated}`}>
                   <div
                     style={{
                       position: "absolute",
@@ -589,7 +611,7 @@ class Visualization extends PureComponent {
                       cursor: "pointer",
                     }}
                   >
-                    {time}
+                    {this.state.lastUpdated}
                     <svg
                       style={{ marginLeft: "5px" }}
                       width="12"
