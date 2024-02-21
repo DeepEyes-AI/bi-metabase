@@ -557,7 +557,8 @@ class Visualization extends PureComponent {
                     : null
                 }
               />
-              {this.props?.dashcard?.card?.display !== "scalar" ? (
+              {this.props?.dashcard?.card?.display !== "scalar" &&
+              this.props?.dashcard?.card?.display !== "smartscalar" ? (
                 <img
                   src={require("./images/logo-full.png")}
                   alt="logo"
