@@ -597,7 +597,7 @@ class Visualization extends PureComponent {
                   <div
                     style={{
                       position: "absolute",
-                      right: "35px",
+                      right: "60px",
                       top:
                         this.props?.dashcard?.card?.display !== "table"
                           ? "8px"
