@@ -8,17 +8,7 @@
    "cs"
    "de"
    "en"
-<<<<<<< HEAD
-   "sq"
-   "lv"
-   "ar-SA"
-   "zh"
-   "sr"
-   "tr"
-   "it"
-=======
    "es"
->>>>>>> v1.49.0
    "fa"
    "fi"
    "fr"
@@ -32,19 +22,6 @@
    "nl"
    "pl"
    "pt-BR"
-<<<<<<< HEAD
-   "zh-CN"
-   "de"
-   "nb"
-   "ru"
-   "sk"
-   "es"
-   "ja"
-   "cs"
-   "ar"
-   "bg"
-   "ko"},
-=======
    "ru"
    "sk"
    "sq"
@@ -57,6 +34,5 @@
    "zh-CN"
    "zh-HK"
    "zh-TW"},
->>>>>>> v1.49.0
  :packages ["metabase"],
  :bundle "metabase.Messages"}
