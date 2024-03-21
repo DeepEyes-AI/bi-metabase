@@ -1,5 +1,6 @@
 import { css } from "@emotion/react";
 import styled from "@emotion/styled";
+
 import type { TextProps, AnchorProps } from "metabase/ui";
 import { Group } from "metabase/ui";
 
@@ -15,7 +16,7 @@ export const ResultLink = styled.a<ResultLinkProps>`
         &:hover,
         &:focus,
         &:focus-within {
-          color: ${theme.colors.brand[1]};
+          color: ${theme.fn.themeColor("brand")};
           outline: 0;
         }
       `

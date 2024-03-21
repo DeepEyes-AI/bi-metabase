@@ -1,15 +1,11 @@
+import { useMemo } from "react";
 import { connect } from "react-redux";
 import { t } from "ttag";
 
-import { useMemo } from "react";
-import Button from "metabase/core/components/Button";
-import EmptyState from "metabase/components/EmptyState";
-
-import MetabaseSettings from "metabase/lib/settings";
-
 import { ConnectedActionPicker } from "metabase/actions/containers/ActionPicker";
+import EmptyState from "metabase/components/EmptyState";
+import Button from "metabase/core/components/Button";
 import { setActionForDashcard } from "metabase/dashboard/actions";
-
 import type {
   ActionDashboardCard,
   Dashboard,
@@ -17,19 +13,18 @@ import type {
 } from "metabase-types/api";
 
 import {
-  ActionParameterMappingForm,
-  getTargetKey,
-} from "./ActionParameterMapping";
-import {
   ActionSettingsWrapper,
   ParameterMapperContainer,
   ActionSettingsHeader,
   ActionSettingsLeft,
   ActionSettingsRight,
   ModalActions,
-  ExplainerText,
-  BrandLinkWithLeftMargin,
 } from "./ActionDashcardSettings.styled";
+import {
+  ActionParameterMappingForm,
+  getTargetKey,
+} from "./ActionParameterMapping";
+import { ExplainerText } from "./ExplainerText";
 import {
   getParameterDefaultValue,
   isParameterHidden,
@@ -101,14 +96,7 @@ export function ActionDashcardSettings({
                 <ActionSettingsHeader>
                   {t`Where should the values for '${action.name}' come from?`}
                 </ActionSettingsHeader>
-                <ExplainerText>
-                  {t`You can either ask users to enter values, or use the value of a dashboard filter.`}
-                  <BrandLinkWithLeftMargin
-                    href={MetabaseSettings.docsUrl("dashboards/actions")}
-                  >
-                    {t`Learn more.`}
-                  </BrandLinkWithLeftMargin>
-                </ExplainerText>
+                <ExplainerText />
               </>
             )}
             <ParameterMapperContainer>

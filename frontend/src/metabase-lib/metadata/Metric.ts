@@ -1,5 +1,6 @@
-import type { Aggregation, NormalizedMetric } from "metabase-types/api";
 import type Filter from "metabase-lib/queries/structured/Filter";
+import type { Aggregation, NormalizedMetric } from "metabase-types/api";
+
 import type Metadata from "./Metadata";
 import type Table from "./Table";
 
@@ -31,7 +32,9 @@ class Metric {
   /** Underlying query for this metric */
   definitionQuery() {
     return this.table && this.definition
-      ? this.table.query().setQuery(this.definition)
+      ? this.table
+          .legacyQuery({ useStructuredQuery: true })
+          .setQuery(this.definition)
       : null;
   }
 

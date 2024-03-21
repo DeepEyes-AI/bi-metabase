@@ -1,3 +1,10 @@
+import { SAMPLE_DB_ID, USERS } from "e2e/support/cypress_data";
+import { SAMPLE_DATABASE } from "e2e/support/cypress_sample_database";
+import {
+  ORDERS_QUESTION_ID,
+  SECOND_COLLECTION_ID,
+  THIRD_COLLECTION_ID,
+} from "e2e/support/cypress_sample_instance_data";
 import {
   openOrdersTable,
   popover,
@@ -13,14 +20,6 @@ import {
   describeOSS,
   queryBuilderHeader,
 } from "e2e/support/helpers";
-
-import { SAMPLE_DB_ID, USERS } from "e2e/support/cypress_data";
-import { SAMPLE_DATABASE } from "e2e/support/cypress_sample_database";
-import {
-  ORDERS_QUESTION_ID,
-  SECOND_COLLECTION_ID,
-  THIRD_COLLECTION_ID,
-} from "e2e/support/cypress_sample_instance_data";
 
 const { ORDERS, ORDERS_ID } = SAMPLE_DATABASE;
 
@@ -74,15 +73,9 @@ describe("scenarios > question > new", () => {
 
       // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
       cy.contains("Our analytics");
-      // cy.findAllByRole("link", { name: "Our analytics" })
-      //   .should("have.attr", "href")
-      //   .and("eq", "/collection/root");
 
       // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
       cy.contains("Sample Database");
-      // cy.findAllByRole("link", { name: "Sample Database" })
-      //   .should("have.attr", "href")
-      //   .and("eq", `/browse/${SAMPLE_DB_ID}-sample-database`);
 
       // Discarding the search query should take us back to the original selector
       // that starts with the list of databases and saved questions
@@ -175,7 +168,9 @@ describe("scenarios > question > new", () => {
       cy.signOut();
       cy.signIn("nocollection");
       startNewQuestion();
-      popover().findByText("Orders").click();
+      popover().within(() => {
+        cy.findByText("Orders").click();
+      });
       visualize();
       saveQuestion("Personal question");
 
@@ -379,61 +374,65 @@ describe("scenarios > question > new", () => {
 // the data picker has different behavior if there are no models in the instance
 // the default instance image has a model in it, so we need to separately test the
 // model-less behavior
-describeOSS("scenarios > question > new > data picker > without models", () => {
-  beforeEach(() => {
-    restore("without-models");
-    cy.signInAsAdmin();
-    setTokenFeatures("none");
-  });
-
-  it("can create a question from the sample database", () => {
-    cy.visit("/question/new");
-
-    cy.get("#DataPopover").within(() => {
-      cy.findByText("Saved Questions").should("be.visible");
-      cy.findByText("Models").should("not.exist");
-      cy.findByText("Sample Database").click();
-      cy.findByText("Products").click();
-    });
-    cy.get("main")
-      .findByText(/Doing Science/)
-      .should("not.exist");
-
-    cy.findByTestId("TableInteractive-root").within(() => {
-      cy.findByText("Rustic Paper Wallet").should("be.visible");
-    });
-  });
-
-  it("can create a question from a saved question", () => {
-    cy.visit("/question/new");
-
-    cy.get("#DataPopover").within(() => {
-      cy.findByText("Saved Questions").click();
-      cy.findByText("Models").should("not.exist");
-      cy.findByText("Orders").click();
-    });
-    cy.get("main")
-      .findByText(/Doing Science/)
-      .should("not.exist");
-
-    cy.findByTestId("TableInteractive-root").within(() => {
-      cy.findByText(39.72).should("be.visible");
-    });
-  });
-
-  it("shows models and raw data options after creating a model", () => {
-    cy.createQuestion({
-      name: "Orders Model",
-      query: { "source-table": ORDERS_ID },
-      dataset: true,
+describeOSS(
+  "scenarios > question > new > data picker > without models",
+  { tags: "@OSS" },
+  () => {
+    beforeEach(() => {
+      restore("without-models");
+      cy.signInAsAdmin();
+      setTokenFeatures("none");
     });
 
-    cy.visit("/question/new");
+    it("can create a question from the sample database", () => {
+      cy.visit("/question/new");
 
-    cy.get("#DataPopover").within(() => {
-      cy.findByText("Raw Data").should("be.visible");
-      cy.findByText("Saved Questions").should("be.visible");
-      cy.findByText("Models").should("be.visible");
+      cy.get("#DataPopover").within(() => {
+        cy.findByText("Saved Questions").should("be.visible");
+        cy.findByText("Models").should("not.exist");
+        cy.findByText("Sample Database").click();
+        cy.findByText("Products").click();
+      });
+      cy.get("main")
+        .findByText(/Doing Science/)
+        .should("not.exist");
+
+      cy.findByTestId("TableInteractive-root").within(() => {
+        cy.findByText("Rustic Paper Wallet").should("be.visible");
+      });
     });
-  });
-});
+
+    it("can create a question from a saved question", () => {
+      cy.visit("/question/new");
+
+      cy.get("#DataPopover").within(() => {
+        cy.findByText("Saved Questions").click();
+        cy.findByText("Models").should("not.exist");
+        cy.findByText("Orders").click();
+      });
+      cy.get("main")
+        .findByText(/Doing Science/)
+        .should("not.exist");
+
+      cy.findByTestId("TableInteractive-root").within(() => {
+        cy.findByText(39.72).should("be.visible");
+      });
+    });
+
+    it("shows models and raw data options after creating a model", () => {
+      cy.createQuestion({
+        name: "Orders Model",
+        query: { "source-table": ORDERS_ID },
+        type: "model",
+      });
+
+      cy.visit("/question/new");
+
+      cy.get("#DataPopover").within(() => {
+        cy.findByText("Raw Data").should("be.visible");
+        cy.findByText("Saved Questions").should("be.visible");
+        cy.findByText("Models").should("be.visible");
+      });
+    });
+  },
+);

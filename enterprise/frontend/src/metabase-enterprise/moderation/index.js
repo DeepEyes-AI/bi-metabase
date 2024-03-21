@@ -3,16 +3,16 @@ import { t } from "ttag";
 import { PLUGIN_MODERATION } from "metabase/plugins";
 import { hasPremiumFeature } from "metabase-enterprise/settings";
 
-import QuestionModerationIcon from "./components/QuestionModerationIcon";
-import QuestionModerationSection from "./components/QuestionModerationSection";
-import QuestionModerationButton from "./components/QuestionModerationButton";
 import ModerationReviewBanner from "./components/ModerationReviewBanner";
 import { ModerationStatusIcon } from "./components/ModerationStatusIcon";
-
+import QuestionModerationButton from "./components/QuestionModerationButton";
+import QuestionModerationIcon from "./components/QuestionModerationIcon";
+import QuestionModerationSection from "./components/QuestionModerationSection";
 import {
   MODERATION_STATUS,
   getStatusIcon,
   getModerationTimelineEvents,
+  getQuestionIcon,
   verifyItem,
   removeReview,
   isItemVerified,
@@ -28,6 +28,7 @@ if (hasPremiumFeature("content_verification")) {
     ModerationReviewBanner,
     ModerationStatusIcon,
     getStatusIcon,
+    getQuestionIcon,
     getModerationTimelineEvents,
     getMenuItems: (model, isModerator, reload) => {
       const id = model.id();
@@ -49,11 +50,11 @@ if (hasPremiumFeature("content_verification")) {
               ? t`Verify this model`
               : t`Verify this question`,
             icon: isVerified ? "close" : verifiedIconName,
-            action: () => {
+            action: async () => {
               if (isVerified) {
-                removeReview({ itemId: id, itemType: "card" });
+                await removeReview({ itemId: id, itemType: "card" });
               } else {
-                verifyItem({ itemId: id, itemType: "card" });
+                await verifyItem({ itemId: id, itemType: "card" });
               }
               reload();
             },

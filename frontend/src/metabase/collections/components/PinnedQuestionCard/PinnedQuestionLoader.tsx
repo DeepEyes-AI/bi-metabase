@@ -1,6 +1,7 @@
 import { useRef } from "react";
-import Questions from "metabase/entities/questions";
+
 import QuestionResultLoader from "metabase/containers/QuestionResultLoader";
+import Questions from "metabase/entities/questions";
 import {
   getGenericErrorMessage,
   getPermissionErrorMessage,
@@ -42,7 +43,7 @@ const PinnedQuestionLoader = ({
   return (
     <Questions.Loader id={id} loadingAndErrorWrapper={false}>
       {({ loading, question: loadedQuestion }: QuestionLoaderProps) => {
-        if (loading !== false || !loadedQuestion.query()) {
+        if (loading !== false) {
           return children({ loading: true });
         }
 

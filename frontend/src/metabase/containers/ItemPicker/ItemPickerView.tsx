@@ -1,23 +1,12 @@
-import { useCallback, useState } from "react";
 import type * as React from "react";
+import { useCallback, useState } from "react";
 import { t } from "ttag";
 
 import Breadcrumbs from "metabase/components/Breadcrumbs";
-import type { IconProps } from "metabase/core/components/Icon";
-import { Icon } from "metabase/core/components/Icon";
-
-import { color } from "metabase/lib/colors";
-
 import Search from "metabase/entities/search";
-
+import type { IconProps } from "metabase/ui";
+import { Icon } from "metabase/ui";
 import type { Collection } from "metabase-types/api";
-
-import type {
-  CollectionPickerItem,
-  PickerItem,
-  PickerModel,
-  SearchQuery,
-} from "./types";
 
 import Item from "./Item";
 import {
@@ -27,6 +16,12 @@ import {
   SearchInput,
   SearchToggle,
 } from "./ItemPicker.styled";
+import type {
+  CollectionPickerItem,
+  PickerItem,
+  PickerModel,
+  SearchQuery,
+} from "./types";
 
 interface SearchEntityListLoaderProps<TId> {
   list: PickerItem<TId>[];
@@ -53,8 +48,6 @@ interface Props<TId> {
   getCollectionIcon: (collection: Collection) => IconProps;
   children: React.ReactNode;
 }
-
-const getDefaultCollectionIconColor = () => color("text-light");
 
 function ItemPickerView<TId>({
   collections,
@@ -150,9 +143,6 @@ function ItemPickerView<TId>({
             key={`collection-${collection.id}`}
             item={collection}
             name={collection.name}
-            color={
-              icon.color ? color(icon.color) : getDefaultCollectionIconColor()
-            }
             icon={icon}
             selected={canSelect && checkIsItemSelected(collection)}
             canSelect={canSelect}
@@ -192,7 +182,6 @@ function ItemPickerView<TId>({
             key={`${item.id}`}
             item={item}
             name={item.getName()}
-            color={item.getColor()}
             icon={item.getIcon().name}
             selected={checkIsItemSelected(item)}
             canSelect={hasPermission}

@@ -1,4 +1,8 @@
 import { createMockMetadata } from "__support__/metadata";
+import type Question from "metabase-lib/Question";
+import type Table from "metabase-lib/metadata/Table";
+import { getQuestionVirtualTableId } from "metabase-lib/metadata/utils/saved-questions";
+import type NativeQuery from "metabase-lib/queries/NativeQuery";
 import {
   createMockField,
   createMockNativeDatasetQuery,
@@ -13,10 +17,7 @@ import {
   PRODUCTS_ID,
   SAMPLE_DB_ID,
 } from "metabase-types/api/mocks/presets";
-import type Question from "metabase-lib/Question";
-import type Table from "metabase-lib/metadata/Table";
-import type NativeQuery from "metabase-lib/queries/NativeQuery";
-import { getQuestionVirtualTableId } from "metabase-lib/metadata/utils/saved-questions";
+
 import { getNativeQueryTable } from "./native-query-table";
 
 const MODEL_ID = 1;
@@ -98,7 +99,7 @@ describe("metabase-lib/queries/utils/native-query-table", () => {
     ) as Question;
 
     const table = getNativeQueryTable(
-      nativeQuestionWithCollection.query() as NativeQuery,
+      nativeQuestionWithCollection.legacyQuery() as NativeQuery,
     );
 
     it("should return the concrete `table` associated with the given collection name", () => {
@@ -108,7 +109,9 @@ describe("metabase-lib/queries/utils/native-query-table", () => {
 
   describe("basic native query question", () => {
     const nativeQuestion = metadata.question(card.id) as Question;
-    const table = getNativeQueryTable(nativeQuestion.query() as NativeQuery);
+    const table = getNativeQueryTable(
+      nativeQuestion.legacyQuery() as NativeQuery,
+    );
 
     it("should not return a table", () => {
       expect(table).toBeNull();

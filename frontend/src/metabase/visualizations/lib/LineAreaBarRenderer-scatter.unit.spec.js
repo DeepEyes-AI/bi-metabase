@@ -1,6 +1,4 @@
 import "__support__/ui-mocks"; // included explicitly whereas with e2e tests it comes with __support__/e2e
-import registerVisualizations from "metabase/visualizations/register";
-
 import {
   NumberColumn,
   dispatchUIEvent,
@@ -9,6 +7,8 @@ import {
   createFixture,
   cleanupFixture,
 } from "__support__/visualizations";
+import registerVisualizations from "metabase/visualizations/register";
+import { createMockCard } from "metabase-types/api/mocks";
 
 registerVisualizations();
 
@@ -50,10 +50,10 @@ describe("LineAreaBarRenderer-scatter", () => {
       element,
       [
         {
-          card: {
+          card: createMockCard({
             display: "scatter",
             visualization_settings: DEFAULT_SETTINGS,
-          },
+          }),
           data: {
             cols: [
               NumberColumn({ display_name: "A", source: "breakout" }),
@@ -82,10 +82,10 @@ describe("LineAreaBarRenderer-scatter", () => {
       element,
       [
         {
-          card: {
+          card: createMockCard({
             display: "scatter",
             visualization_settings: DEFAULT_SETTINGS,
-          },
+          }),
           data: {
             cols: [
               NumberColumn({ display_name: "A", source: "breakout" }),

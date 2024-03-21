@@ -4,8 +4,8 @@
    [clojure.string :as str]
    [flatland.ordered.map :as ordered-map]
    [malli.core :as mc]
-   [metabase.models.permissions :as perms]
    [metabase.models.setting :refer [defsetting]]
+   [metabase.permissions.util :as perms.u]
    [metabase.public-settings :as public-settings]
    [metabase.util.i18n :refer [deferred-tru]]
    [metabase.util.malli :as mu]
@@ -16,7 +16,9 @@
                 (public-settings/application-name-for-setting-descriptions))
   :type       :boolean
   :default    true
-  :visibility :authenticated)
+  :visibility :authenticated
+  :export?    true
+  :audit      :getter)
 
 (def ^:dynamic *db-max-results*
   "Number of raw results to fetch from the database. This number is in place to prevent massive application DB load by
@@ -97,7 +99,7 @@
    [:map {:closed true}
     [:search-string                                        [:maybe ms/NonBlankString]]
     [:archived?                                            :boolean]
-    [:current-user-perms                                   [:set perms/PathSchema]]
+    [:current-user-perms                                   [:set perms.u/PathSchema]]
     [:models                                               [:set SearchableModel]]
     [:filter-items-in-personal-collection {:optional true} [:enum "only" "exclude"]]
     [:created-at                          {:optional true} ms/NonBlankString]
@@ -136,6 +138,7 @@
    ;; returned for Card, Dashboard, and Collection
    :collection_id       :integer
    :collection_name     :text
+   :collection_type     :text
    :collection_authority_level :text
    ;; returned for Card and Dashboard
    :collection_position :integer
@@ -144,11 +147,12 @@
    :bookmark            :boolean
    ;; returned for everything except Collection
    :updated_at          :timestamp
-   ;; returned for Card only, used for scoring
+   ;; returned for Card only, used for scoring and displays
    :dashboardcard_count :integer
    :last_edited_at      :timestamp
    :last_editor_id      :integer
    :moderated_status    :text
+   :display             :text
    ;; returned for Metric and Segment
    :table_id            :integer
    :table_schema        :text
@@ -262,7 +266,7 @@
 
 (defmethod columns-for-model "card"
   [_]
-  (conj default-columns :collection_id :collection_position :dataset_query :creator_id
+  (conj default-columns :collection_id :collection_position :dataset_query :display :creator_id
         [:collection.name :collection_name]
         [:collection.authority_level :collection_authority_level]
         bookmark-col dashboardcard-count-col))
@@ -293,6 +297,7 @@
   (conj (remove #{:updated_at} default-columns)
         [:collection.id :collection_id]
         [:name :collection_name]
+        [:type :collection_type]
         [:authority_level :collection_authority_level]
         bookmark-col))
 

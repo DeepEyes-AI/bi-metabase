@@ -1,13 +1,14 @@
-import { useMemo, useState } from "react";
 import type * as React from "react";
-import _ from "underscore";
+import { useMemo, useState } from "react";
 import { t } from "ttag";
-import { useDebouncedValue } from "metabase/hooks/use-debounced-value";
-import { SEARCH_DEBOUNCE_DURATION } from "metabase/lib/constants";
-import EmptyState from "metabase/components/EmptyState";
+import _ from "underscore";
 
+import EmptyState from "metabase/components/EmptyState";
 import type { InputProps } from "metabase/core/components/Input";
 import Input from "metabase/core/components/Input";
+import { useDebouncedValue } from "metabase/hooks/use-debounced-value";
+import { SEARCH_DEBOUNCE_DURATION } from "metabase/lib/constants";
+
 import {
   OptionContainer,
   OptionsList,
@@ -137,7 +138,7 @@ const SingleSelectListField = ({
                 checkedColor ?? isDashboardFilter ? "brand" : "filter"
               }
               selected={selectedValue === option[0]}
-              onClick={e => onClickOption(option[0])}
+              onClick={() => onClickOption(option[0])}
               onMouseDown={e => e.preventDefault()}
             >
               {optionRenderer(option)}

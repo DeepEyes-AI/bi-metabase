@@ -3,19 +3,20 @@ import { useState } from "react";
 import { connect } from "react-redux";
 import { t } from "ttag";
 
-import { Icon } from "metabase/core/components/Icon";
-import Link from "metabase/core/components/Link";
-import ModalContent from "metabase/components/ModalContent";
-import DashboardPicker from "metabase/containers/DashboardPicker";
-import * as Urls from "metabase/lib/urls";
-import CreateDashboardModal from "metabase/dashboard/containers/CreateDashboardModal";
 import { useCollectionQuery } from "metabase/common/hooks";
 import LoadingAndErrorWrapper from "metabase/components/LoadingAndErrorWrapper";
-import type { State } from "metabase-types/store";
-import type { Card, CollectionId, Dashboard } from "metabase-types/api";
+import ModalContent from "metabase/components/ModalContent";
+import DashboardPicker from "metabase/containers/DashboardPicker";
+import Link from "metabase/core/components/Link";
 import type { CreateDashboardFormOwnProps } from "metabase/dashboard/containers/CreateDashboardForm";
-import { useSelector } from "metabase/lib/redux";
+import { CreateDashboardModalConnected } from "metabase/dashboard/containers/CreateDashboardModal";
 import Collections, { ROOT_COLLECTION } from "metabase/entities/collections";
+import { useSelector } from "metabase/lib/redux";
+import * as Urls from "metabase/lib/urls";
+import { Icon } from "metabase/ui";
+import type { Card, CollectionId, Dashboard } from "metabase-types/api";
+import type { State } from "metabase-types/store";
+
 import { LinkContent } from "./AddToDashSelectDashModal.styled";
 import { useMostRecentlyViewedDashboard } from "./hooks";
 import { getInitialOpenCollectionId } from "./utils";
@@ -91,8 +92,10 @@ const AddToDashSelectDashModal = ({
 
   if (shouldCreateDashboard) {
     return (
-      <CreateDashboardModal
-        showOnlyPersonalCollections={isQuestionInPersonalCollection}
+      <CreateDashboardModalConnected
+        filterPersonalCollections={
+          isQuestionInPersonalCollection ? "only" : undefined
+        }
         collectionId={card.collection_id}
         onCreate={navigateToDashboard}
         onClose={() => setShouldCreateDashboard(false)}
@@ -120,7 +123,9 @@ const AddToDashSelectDashModal = ({
     >
       <DashboardPicker
         onOpenCollectionChange={setOpenCollectionId}
-        showOnlyPersonalCollections={isQuestionInPersonalCollection}
+        filterPersonalCollections={
+          isQuestionInPersonalCollection ? "only" : undefined
+        }
         onChange={onDashboardSelected}
         collectionId={initialOpenCollectionId}
         value={mostRecentlyViewedDashboardQuery.data?.id}

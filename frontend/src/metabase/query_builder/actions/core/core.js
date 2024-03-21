@@ -1,32 +1,30 @@
 import { createAction } from "redux-actions";
-
 import _ from "underscore";
+
+import { fetchAlertsForQuestion } from "metabase/alert/alert";
+import Databases from "metabase/entities/databases";
+import { ModelIndexes } from "metabase/entities/model-indexes";
+import Questions from "metabase/entities/questions";
+import Revision from "metabase/entities/revisions";
 import * as MetabaseAnalytics from "metabase/lib/analytics";
 import { loadCard } from "metabase/lib/card";
 import { shouldOpenInBlankWindow } from "metabase/lib/dom";
+import { createThunkAction } from "metabase/lib/redux";
 import * as Urls from "metabase/lib/urls";
 import { copy } from "metabase/lib/utils";
-import { createThunkAction } from "metabase/lib/redux";
-
 import { loadMetadataForCard } from "metabase/questions/actions";
-import { getCardAfterVisualizationClick } from "metabase/visualizations/lib/utils";
-
 import { openUrl } from "metabase/redux/app";
-
-import Questions from "metabase/entities/questions";
-import Databases from "metabase/entities/databases";
-import { ModelIndexes } from "metabase/entities/model-indexes";
-
-import { fetchAlertsForQuestion } from "metabase/alert/alert";
-import Revision from "metabase/entities/revisions";
+import { getMetadata } from "metabase/selectors/metadata";
+import { getCardAfterVisualizationClick } from "metabase/visualizations/lib/utils";
+import * as Lib from "metabase-lib";
+import Question from "metabase-lib/Question";
+import { isAdHocModelQuestion } from "metabase-lib/metadata/utils/models";
+import Query from "metabase-lib/queries/Query";
 import {
   cardIsEquivalent,
   cardQueryIsEquivalent,
 } from "metabase-lib/queries/utils/card";
-import Query from "metabase-lib/queries/Query";
-import Question from "metabase-lib/Question";
 
-import { isAdHocModelQuestion } from "metabase-lib/metadata/utils/models";
 import { trackNewQuestionSaved } from "../../analytics";
 import {
   getCard,
@@ -36,8 +34,8 @@ import {
   getResultsMetadata,
   getTransformedSeries,
   isBasedOnExistingQuestion,
+  getParameters,
 } from "../../selectors";
-
 import { updateUrl } from "../navigation";
 import { zoomInRow } from "../object-detail";
 import { clearQueryResult, runQuestionQuery } from "../querying";
@@ -74,11 +72,28 @@ export const reloadCard = createThunkAction(RELOAD_CARD, () => {
     );
     const card = Questions.HACK_getObjectFromAction(action);
 
+    // We need to manually massage the paramters into the parameterValues shape,
+    // to be able to pass them to new Question.
+    // We could use _parameterValues here but prefer not to use internal fields.
+    const parameterValues = outdatedQuestion.parameters().reduce(
+      (acc, next) => ({
+        ...acc,
+        [next.id]: next.value,
+      }),
+      {},
+    );
+
+    const question = new Question(
+      card,
+      getMetadata(getState()),
+      parameterValues,
+    );
+
     dispatch(loadMetadataForCard(card));
 
     dispatch(
       runQuestionQuery({
-        overrideWithCard: card,
+        overrideWithQuestion: question,
         shouldUpdateUrl: false,
       }),
     );
@@ -155,7 +170,9 @@ export const navigateToNewCardInsideQB = createThunkAction(
           }
           // When the dataset query changes, we should loose the dataset flag,
           // to start building a new ad-hoc question based on a dataset
-          dispatch(setCardAndRun({ ...card, dataset: false }));
+          dispatch(
+            setCardAndRun({ ...card, dataset: false, type: "question" }),
+          );
         }
         if (objectId !== undefined) {
           dispatch(zoomInRow({ objectId }));
@@ -187,8 +204,9 @@ export const apiCreateQuestion = question => {
 
     const resultsMetadata = getResultsMetadata(getState());
     const isResultDirty = getIsResultDirty(getState());
+    const cleanQuery = Lib.dropStageIfEmpty(question.query(), -1);
     const questionToCreate = questionWithVizSettings
-      .setQuery(question.query().clean())
+      .setQuery(cleanQuery)
       .setResultsMetadata(isResultDirty ? null : resultsMetadata);
     const createdQuestion = await reduxCreateQuestion(
       questionToCreate,
@@ -203,7 +221,7 @@ export const apiCreateQuestion = question => {
     MetabaseAnalytics.trackStructEvent(
       "QueryBuilder",
       "Create Card",
-      createdQuestion.type(),
+      createdQuestion.datasetQuery().type,
     );
     trackNewQuestionSaved(
       question,
@@ -233,13 +251,15 @@ export const apiUpdateQuestion = (question, { rerunQuery } = {}) => {
     const resultsMetadata = getResultsMetadata(getState());
     const isResultDirty = getIsResultDirty(getState());
 
-    if (question.isDataset()) {
+    if (question.isDataset() && resultsMetadata) {
       resultsMetadata.columns = ModelIndexes.actions.cleanIndexFlags(
         resultsMetadata.columns,
       );
     }
 
-    if (question.isStructured()) {
+    const { isNative } = Lib.queryDisplayInfo(question.query());
+
+    if (!isNative) {
       rerunQuery = rerunQuery ?? isResultDirty;
     }
 
@@ -249,11 +269,9 @@ export const apiUpdateQuestion = (question, { rerunQuery } = {}) => {
       ? getQuestionWithDefaultVisualizationSettings(question, series)
       : question;
 
+    const cleanQuery = Lib.dropStageIfEmpty(question.query(), -1);
     const questionToUpdate = questionWithVizSettings
-      // Before we clean the query, we make sure question is not treated as a dataset
-      // as calling table() method down the line would bring unwanted consequences
-      // such as dropping joins (as joins are treated differently between pure questions and datasets)
-      .setQuery(question.setDataset(false).query().clean())
+      .setQuery(cleanQuery)
       .setResultsMetadata(isResultDirty ? null : resultsMetadata);
 
     // When viewing a dataset, its dataset_query is swapped with a clean query using the dataset as a source table
@@ -274,7 +292,7 @@ export const apiUpdateQuestion = (question, { rerunQuery } = {}) => {
     MetabaseAnalytics.trackStructEvent(
       "QueryBuilder",
       "Update Card",
-      updatedQuestion.type(),
+      updatedQuestion.datasetQuery().type,
     );
 
     await dispatch({
@@ -302,6 +320,22 @@ export const setParameterValue = createAction(
   SET_PARAMETER_VALUE,
   (parameterId, value) => {
     return { id: parameterId, value: normalizeValue(value) };
+  },
+);
+
+export const SET_PARAMETER_VALUE_TO_DEFAULT =
+  "metabase/qb/SET_PARAMETER_VALUE_TO_DEFAULT";
+export const setParameterValueToDefault = createThunkAction(
+  SET_PARAMETER_VALUE_TO_DEFAULT,
+  parameterId => (dispatch, getState) => {
+    const parameter = getParameters(getState()).find(
+      ({ id }) => id === parameterId,
+    );
+    const defaultValue = parameter?.default;
+
+    if (defaultValue) {
+      dispatch(setParameterValue(parameterId, defaultValue));
+    }
   },
 );
 

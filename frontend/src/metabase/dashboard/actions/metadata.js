@@ -1,8 +1,9 @@
 import Questions from "metabase/entities/questions";
-import { getMetadata } from "metabase/selectors/metadata";
-import { loadMetadataForQueries } from "metabase/redux/metadata";
 import { getLinkTargets } from "metabase/lib/click-behavior";
+import { loadMetadataForQueries } from "metabase/redux/metadata";
+import { getMetadata } from "metabase/selectors/metadata";
 import Question from "metabase-lib/Question";
+
 import { isVirtualDashCard } from "../utils";
 
 export const loadMetadataForDashboard = dashCards => async dispatch => {
@@ -25,7 +26,9 @@ const loadMetadataForCards = cards => (dispatch, getState) => {
 
   return dispatch(
     loadMetadataForQueries(
-      questions.map(question => question.query()),
+      questions.map(question =>
+        question.legacyQuery({ useStructuredQuery: true }),
+      ),
       questions.map(question => question.dependentMetadata()),
     ),
   );

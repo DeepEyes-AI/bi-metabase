@@ -1,8 +1,11 @@
+import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+
 import { getIcon, render } from "__support__/ui";
-import { ModalContentActionIcon } from "./ModalContent.styled";
+
 import type { ModalContentProps } from "./ModalContent";
 import ModalContent from "./ModalContent";
+import { ModalContentActionIcon } from "./ModalContent.styled";
 
 describe("ModalContent", () => {
   it("should render header action buttons", () => {
@@ -36,6 +39,18 @@ describe("ModalContent", () => {
       expect(onClick).toHaveBeenCalledTimes(1);
     });
   });
+
+  it("should render back button if onBack props is passed", () => {
+    const onBack = jest.fn();
+
+    setup({ onBack });
+
+    const backButton = screen.getByLabelText("chevronleft icon");
+    expect(backButton).toBeInTheDocument();
+
+    userEvent.click(backButton);
+    expect(onBack).toHaveBeenCalledTimes(1);
+  });
 });
 
 function setup({
@@ -44,7 +59,8 @@ function setup({
   centeredTitle = false,
   children = <>Content</>,
   fullPageModal = false,
-  onClose = jest.fn,
+  onClose = jest.fn(),
+  onBack,
   ...extraProps
 }: Partial<ModalContentProps> = {}) {
   const props = {
@@ -54,6 +70,7 @@ function setup({
     children,
     fullPageModal,
     onClose,
+    onBack,
     ...extraProps,
   };
 

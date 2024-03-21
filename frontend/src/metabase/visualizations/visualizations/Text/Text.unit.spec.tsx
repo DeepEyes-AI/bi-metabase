@@ -1,5 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+
 import { color } from "metabase/lib/colors";
 
 import { Text } from "../Text";
@@ -152,6 +153,25 @@ describe("Text", () => {
 
         userEvent.click(screen.getByTestId("editing-dashboard-text-preview"));
         expect(screen.getByDisplayValue("text text text")).toBeInTheDocument();
+      });
+
+      it("should call onUpdateVisualizationSettings on blur", () => {
+        const mockOnUpdateVisualizationSettings = jest.fn();
+        const options = {
+          settings: getSettingsWithText("text"),
+          isEditing: true,
+          onUpdateVisualizationSettings: mockOnUpdateVisualizationSettings,
+        };
+        setup(options);
+
+        userEvent.click(screen.getByTestId("editing-dashboard-text-preview"));
+        userEvent.type(screen.getByRole("textbox"), "foo");
+        userEvent.tab();
+
+        expect(mockOnUpdateVisualizationSettings).toHaveBeenCalledTimes(1);
+        expect(mockOnUpdateVisualizationSettings).toHaveBeenCalledWith({
+          text: "textfoo",
+        });
       });
     });
   });

@@ -1,5 +1,6 @@
-import { useState } from "react";
 import userEvent from "@testing-library/user-event";
+import { useState } from "react";
+
 import {
   getIcon,
   queryIcon,
@@ -8,9 +9,10 @@ import {
   waitFor,
   within,
 } from "__support__/ui";
-import { FormProvider } from "metabase/forms";
 import { getDefaultFieldSettings } from "metabase/actions/utils";
+import { FormProvider } from "metabase/forms";
 import type { FieldSettings } from "metabase-types/api";
+
 import type { FormFieldEditorProps } from "./FormFieldEditor";
 import FormFieldEditor from "./FormFieldEditor";
 
@@ -109,6 +111,7 @@ describe("FormFieldEditor", () => {
     it("keeps value options when switching between input types", async () => {
       const { onChange } = setup({ fieldSettings: TEST_STRING_FIELD_SETTINGS });
       userEvent.click(screen.getByLabelText("Field settings"));
+      userEvent.unhover(screen.getByLabelText("Field settings"));
       const popover = await screen.findByRole("tooltip");
 
       userEvent.click(within(popover).getByRole("radio", { name: "Text" }));
@@ -165,6 +168,7 @@ describe("FormFieldEditor", () => {
       const { onChange } = setup({ fieldSettings });
 
       userEvent.click(screen.getByLabelText("Field settings"));
+      userEvent.unhover(screen.getByLabelText("Field settings"));
       expect(await screen.findByRole("tooltip")).toBeInTheDocument();
 
       userEvent.click(screen.getByRole("radio", { name: "Long text" }));
@@ -186,6 +190,7 @@ describe("FormFieldEditor", () => {
 
       const { onChange } = setup({ fieldSettings });
       userEvent.click(screen.getByLabelText("Field settings"));
+      userEvent.unhover(screen.getByLabelText("Field settings"));
       expect(await screen.findByRole("tooltip")).toBeInTheDocument();
 
       userEvent.click(screen.getByText("Number"));

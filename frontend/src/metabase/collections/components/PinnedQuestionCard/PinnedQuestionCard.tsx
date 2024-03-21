@@ -1,20 +1,22 @@
 import { t } from "ttag";
+
+import ActionMenu from "metabase/collections/components/ActionMenu";
 import {
-  isFullyParametrized,
+  isFullyParameterized,
   isPreviewShown,
 } from "metabase/collections/utils";
+import type { IconName } from "metabase/ui";
 import Visualization from "metabase/visualizations/components/Visualization";
-import type { Bookmark, Collection, CollectionItem } from "metabase-types/api";
-import ActionMenu from "metabase/collections/components/ActionMenu";
-import type { IconName } from "metabase/core/components/Icon";
 import type Database from "metabase-lib/metadata/Database";
-import PinnedQuestionLoader from "./PinnedQuestionLoader";
+import type { Bookmark, Collection, CollectionItem } from "metabase-types/api";
+
 import {
   CardActionMenuContainer,
   CardPreviewSkeleton,
   CardRoot,
   CardStaticSkeleton,
 } from "./PinnedQuestionCard.styled";
+import PinnedQuestionLoader from "./PinnedQuestionLoader";
 
 export interface PinnedQuestionCardProps {
   item: CollectionItem;
@@ -98,7 +100,7 @@ const PinnedQuestionCard = ({
 };
 
 const getSkeletonTooltip = (item: CollectionItem) => {
-  if (!isFullyParametrized(item)) {
+  if (!isFullyParameterized(item)) {
     return t`Open this question and fill in its variables to see it.`;
   } else {
     return undefined;

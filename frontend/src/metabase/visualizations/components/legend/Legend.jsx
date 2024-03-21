@@ -1,9 +1,10 @@
-import { useCallback, useRef, useState } from "react";
 import PropTypes from "prop-types";
+import { useCallback, useRef, useState } from "react";
 import { t } from "ttag";
 import _ from "underscore";
 
 import Popover from "metabase/components/Popover";
+
 import {
   LegendLink,
   LegendLinkContainer,
@@ -73,7 +74,11 @@ const Legend = ({
   const overflowLength = labels.length - overflowIndex;
 
   return (
-    <LegendRoot className={className} isVertical={isVertical}>
+    <LegendRoot
+      className={className}
+      aria-label={t`Legend`}
+      isVertical={isVertical}
+    >
       {visibleLabels.map((label, index) => {
         const localIndex = index + visibleIndex;
         const itemIndex = isReversed

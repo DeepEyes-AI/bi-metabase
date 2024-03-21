@@ -3,23 +3,28 @@ import { CSSTransition, TransitionGroup } from "react-transition-group";
 import { t } from "ttag";
 import * as Yup from "yup";
 
-import ModalContent from "metabase/components/ModalContent";
-import { Form, FormProvider } from "metabase/forms";
 import FormCollectionPicker from "metabase/collections/containers/FormCollectionPicker/FormCollectionPicker";
+import {
+  canonicalCollectionId,
+  isInstanceAnalyticsCollection,
+  getInstanceAnalyticsCustomCollection,
+} from "metabase/collections/utils";
+import { useCollectionListQuery } from "metabase/common/hooks";
+import ModalContent from "metabase/components/ModalContent";
 import { CreateCollectionOnTheGo } from "metabase/containers/CreateCollectionOnTheGo";
-import FormInput from "metabase/core/components/FormInput";
-import FormFooter from "metabase/core/components/FormFooter";
-import FormTextArea from "metabase/core/components/FormTextArea";
-import FormErrorMessage from "metabase/core/components/FormErrorMessage";
 import Button from "metabase/core/components/Button";
-import FormSubmitButton from "metabase/core/components/FormSubmitButton";
+import FormErrorMessage from "metabase/core/components/FormErrorMessage";
+import FormFooter from "metabase/core/components/FormFooter";
+import FormInput from "metabase/core/components/FormInput";
 import FormRadio from "metabase/core/components/FormRadio";
-import { canonicalCollectionId } from "metabase/collections/utils";
-import type { CollectionId } from "metabase-types/api";
+import FormSubmitButton from "metabase/core/components/FormSubmitButton";
+import FormTextArea from "metabase/core/components/FormTextArea";
+import { Form, FormProvider } from "metabase/forms";
 import * as Errors from "metabase/lib/errors";
-import { getIsSavedQuestionChanged } from "metabase/query_builder/selectors";
 import { useSelector } from "metabase/lib/redux";
+import { getIsSavedQuestionChanged } from "metabase/query_builder/selectors";
 import type Question from "metabase-lib/Question";
+import type { CollectionId } from "metabase-types/api";
 
 import "./SaveQuestionModal.css";
 
@@ -51,7 +56,7 @@ interface SaveQuestionModalProps {
   onSave: (question: Question) => Promise<void>;
   onClose: () => void;
   multiStep?: boolean;
-  initialCollectionId?: number;
+  initialCollectionId?: CollectionId;
 }
 
 interface FormValues {
@@ -77,6 +82,8 @@ export const SaveQuestionModal = ({
   multiStep,
   initialCollectionId,
 }: SaveQuestionModalProps) => {
+  const { data: collections } = useCollectionListQuery();
+
   const handleOverwrite = useCallback(
     async (originalQuestion: Question) => {
       const collectionId = canonicalCollectionId(
@@ -130,11 +137,27 @@ export const SaveQuestionModal = ({
 
   const isReadonly = originalQuestion != null && !originalQuestion.canWrite();
 
+  // we can't use null because that can be ID of the root collection
+  const instanceAnalyticsCollectionId =
+    collections?.find(isInstanceAnalyticsCollection)?.id ?? "not found";
+
+  const isInInstanceAnalyticsQuestion =
+    originalQuestion?.collectionId() === instanceAnalyticsCollectionId;
+
+  if (collections && isInInstanceAnalyticsQuestion) {
+    const customCollection = getInstanceAnalyticsCustomCollection(collections);
+    if (customCollection) {
+      initialCollectionId = customCollection.id;
+    }
+  }
+
   const initialValues: FormValues = {
     name: question.generateQueryDescription() || "",
     description: question.description() || "",
     collection_id:
-      question.collectionId() === undefined || isReadonly
+      question.collectionId() === undefined ||
+      isReadonly ||
+      isInInstanceAnalyticsQuestion
         ? initialCollectionId
         : question.collectionId(),
     saveType:

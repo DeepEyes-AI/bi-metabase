@@ -1,6 +1,9 @@
-import type { CollectionId, Dashboard } from "metabase-types/api";
+import {
+  coerceCollectionId,
+  isPublicCollection,
+} from "metabase/collections/utils";
 import { ROOT_COLLECTION } from "metabase/entities/collections";
-import { coerceCollectionId } from "metabase/collections/utils";
+import type { CollectionId, Dashboard } from "metabase-types/api";
 
 interface GetInitialOpenCollectionIdProps {
   isQuestionInPersonalCollection: boolean;
@@ -26,5 +29,5 @@ export const getInitialOpenCollectionId = ({
 };
 
 export function isInPublicCollection(dashboard: Dashboard | undefined) {
-  return !dashboard?.collection?.is_personal;
+  return isPublicCollection(dashboard?.collection ?? ROOT_COLLECTION);
 }

@@ -1,18 +1,18 @@
+import type { Location } from "history";
 import { t } from "ttag";
 import _ from "underscore";
 
-import type { Location } from "history";
 import { Grid } from "metabase/components/Grid";
-import NewModelOption from "metabase/models/components/NewModelOption";
-
+import Databases from "metabase/entities/databases";
+import { useSelector } from "metabase/lib/redux";
 import MetabaseSettings from "metabase/lib/settings";
 import * as Urls from "metabase/lib/urls";
-import Databases from "metabase/entities/databases";
+import NewModelOption from "metabase/models/components/NewModelOption";
+import { NoDatabasesEmptyState } from "metabase/reference/databases/NoDatabasesEmptyState";
 import { getHasDataAccess, getHasNativeWrite } from "metabase/selectors/data";
-
-import { useSelector } from "metabase/lib/redux";
-import AdminAwareEmptyState from "metabase/components/AdminAwareEmptyState";
+import { getShowMetabaseLinks } from "metabase/selectors/whitelabel";
 import type Database from "metabase-lib/metadata/Database";
+
 import {
   OptionsGridItem,
   OptionsRoot,
@@ -37,6 +37,8 @@ const NewModelOptions = (props: NewModelOptionsProps) => {
   const collectionId = Urls.extractEntityId(
     props.location.query.collectionId as string,
   );
+
+  const showMetabaseLinks = useSelector(getShowMetabaseLinks);
 
   if (!hasDataAccess && !hasNativeWrite) {
     return (
@@ -65,7 +67,6 @@ const NewModelOptions = (props: NewModelOptionsProps) => {
                 dataset: true,
                 collectionId,
               })}
-              data-metabase-event="New Model; Custom Question Start"
             />
           </OptionsGridItem>
         )}
@@ -83,32 +84,23 @@ const NewModelOptions = (props: NewModelOptionsProps) => {
                 collectionId,
               })}
               width={180}
-              data-metabase-event="New Model; Native Query Start"
             />
           </OptionsGridItem>
         )}
       </Grid>
 
-      <EducationalButton
-        target="_blank"
-        href={EDUCATIONAL_LINK}
-        className="mt4"
-      >
-        {t`What's a model?`}
-      </EducationalButton>
+      {showMetabaseLinks && (
+        <EducationalButton
+          target="_blank"
+          href={EDUCATIONAL_LINK}
+          className="mt4"
+        >
+          {t`What's a model?`}
+        </EducationalButton>
+      )}
     </OptionsRoot>
   );
 };
-const NoDatabasesEmptyState = () => (
-  <AdminAwareEmptyState
-    title={t`Metabase is no fun without any data`}
-    adminMessage={t`Your databases will appear here once you connect one`}
-    message={t`Databases will appear here once your admins have added some`}
-    image="app/assets/img/databases-list"
-    adminAction={t`Connect a database`}
-    adminLink="/admin/databases/create"
-  />
-);
 // eslint-disable-next-line import/no-default-export -- deprecated usage
 export default _.compose(
   Databases.loadList({

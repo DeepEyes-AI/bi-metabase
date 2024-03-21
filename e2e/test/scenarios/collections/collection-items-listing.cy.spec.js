@@ -1,6 +1,7 @@
 import _ from "underscore";
-import { restore } from "e2e/support/helpers";
+
 import { SAMPLE_DATABASE } from "e2e/support/cypress_sample_database";
+import { restore } from "e2e/support/helpers";
 
 const { ORDERS, ORDERS_ID } = SAMPLE_DATABASE;
 
@@ -133,7 +134,7 @@ describe("scenarios > collection items listing", () => {
         const dashboardsFirst = _.chain(sortedNames)
           .sortBy(name => name.toLowerCase().includes("question"))
           .sortBy(name => name.toLowerCase().includes("collection"))
-          .sortBy(name => name.toLowerCase().includes("instance analytics"))
+          .sortBy(name => name.toLowerCase().includes("metabase analytics"))
           .value();
         expect(actualNames, "sorted dashboards first").to.deep.equal(
           dashboardsFirst,
@@ -196,7 +197,7 @@ describe("scenarios > collection items listing", () => {
           .reverse()
           .sortBy(name => name.toLowerCase().includes("collection"))
           .sortBy(name => name.toLowerCase().includes("personal"))
-          .sortBy(name => name.toLowerCase().includes("instance analytics"))
+          .sortBy(name => name.toLowerCase().includes("metabase analytics"))
           .value();
         expect(actualNames, "sorted newest first").to.deep.equal(newestFirst);
       });

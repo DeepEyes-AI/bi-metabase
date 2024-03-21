@@ -1,3 +1,9 @@
+import { SAMPLE_DATABASE } from "e2e/support/cypress_sample_database";
+import {
+  ORDERS_DASHBOARD_DASHCARD_ID,
+  ORDERS_DASHBOARD_ID,
+  ORDERS_QUESTION_ID,
+} from "e2e/support/cypress_sample_instance_data";
 import {
   restore,
   downloadAndAssert,
@@ -16,12 +22,6 @@ import {
   enableTracking,
   addOrUpdateDashboardCard,
 } from "e2e/support/helpers";
-import {
-  ORDERS_DASHBOARD_DASHCARD_ID,
-  ORDERS_DASHBOARD_ID,
-  ORDERS_QUESTION_ID,
-} from "e2e/support/cypress_sample_instance_data";
-import { SAMPLE_DATABASE } from "e2e/support/cypress_sample_database";
 
 const { ORDERS, ORDERS_ID } = SAMPLE_DATABASE;
 
@@ -114,7 +114,7 @@ describe("scenarios > question > download", () => {
       assertOrdersExport(1);
     });
 
-    it("should allow downloading parametrized cards opened from dashboards as a user with no self-service permission (metabase#20868)", () => {
+    it("should allow downloading parameterized cards opened from dashboards as a user with no self-service permission (metabase#20868)", () => {
       cy.createQuestion({
         name: "20868",
         query: {

@@ -1,13 +1,13 @@
 import { t } from "ttag";
+
+import { collection as collectionUrl } from "metabase/lib/urls";
 import {
   PLUGIN_COLLECTION_COMPONENTS,
   PLUGIN_COLLECTIONS,
 } from "metabase/plugins";
 import type { WrappedResult } from "metabase/search/types";
-import type { Collection } from "metabase-types/api";
-import { collection as collectionUrl } from "metabase/lib/urls";
-
 import { Box } from "metabase/ui";
+import type { Collection } from "metabase-types/api";
 
 const { CollectionAuthorityLevelIcon } = PLUGIN_COLLECTION_COMPONENTS;
 
@@ -53,9 +53,9 @@ const getCollectionInfoText = (result: WrappedResult): InfoTextData => {
       label: t`Collection`,
     };
   }
-  const level = PLUGIN_COLLECTIONS.AUTHORITY_LEVEL[collection.authority_level];
+  const type = PLUGIN_COLLECTIONS.getCollectionType(collection);
   return {
-    label: `${level.name} ${t`Collection`}`,
+    label: `${type.name} ${t`Collection`}`,
   };
 };
 

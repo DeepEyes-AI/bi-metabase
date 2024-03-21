@@ -1,6 +1,6 @@
 import { waitFor } from "@testing-library/react";
-// eslint-disable-next-line no-restricted-imports -- deprecated usage
-import moment from "moment";
+import moment from "moment"; // eslint-disable-line no-restricted-imports -- deprecated usage
+
 import {
   setupCollectionByIdEndpoint,
   setupDatabaseEndpoints,
@@ -9,6 +9,8 @@ import {
   setupUsersEndpoints,
 } from "__support__/server-mocks";
 import { renderWithProviders, screen } from "__support__/ui";
+import type { WrappedResult } from "metabase/search/types";
+import type { IconName } from "metabase/ui";
 import type { SearchModelType, SearchResult } from "metabase-types/api";
 import {
   createMockCollection,
@@ -17,8 +19,7 @@ import {
   createMockTable,
   createMockUser,
 } from "metabase-types/api/mocks";
-import type { IconName } from "metabase/core/components/Icon";
-import type { WrappedResult } from "metabase/search/types";
+
 import { InfoText } from "./InfoText";
 
 const MOCK_COLLECTION = createMockCollection({
@@ -37,8 +38,7 @@ const MOCK_OTHER_USER = createMockUser({
 
 const CREATED_AT_TIME = "2022-01-01T00:00:00.000Z";
 const LAST_EDITED_TIME = "2023-01-01T00:00:00.000Z";
-const formatDuration = (timestamp: string) =>
-  moment.duration(moment().diff(moment(timestamp))).humanize();
+const formatDuration = (timestamp: string) => moment(timestamp).fromNow();
 
 const CREATED_AT_DURATION = formatDuration(CREATED_AT_TIME);
 const LAST_EDITED_DURATION = formatDuration(LAST_EDITED_TIME);
@@ -199,7 +199,7 @@ describe("InfoText", () => {
       expect(databaseLink).toBeInTheDocument();
       expect(databaseLink).toHaveAttribute(
         "href",
-        `/browse/${MOCK_DATABASE.id}-database-name`,
+        `/browse/databases/${MOCK_DATABASE.id}-database-name`,
       );
 
       expect(screen.getByTestId("revision-history-button")).toHaveTextContent(
@@ -247,7 +247,7 @@ describe("InfoText", () => {
       await setup();
 
       expect(screen.getByTestId("revision-history-button")).toHaveTextContent(
-        `Updated ${LAST_EDITED_DURATION} ago by ${MOCK_OTHER_USER.common_name}`,
+        `Updated ${LAST_EDITED_DURATION} by ${MOCK_OTHER_USER.common_name}`,
       );
     });
 
@@ -275,7 +275,7 @@ describe("InfoText", () => {
       });
 
       expect(screen.getByTestId("revision-history-button")).toHaveTextContent(
-        `Created ${CREATED_AT_DURATION} ago`,
+        `Created ${CREATED_AT_DURATION}`,
       );
     });
 
@@ -288,7 +288,7 @@ describe("InfoText", () => {
       });
 
       expect(screen.getByTestId("revision-history-button")).toHaveTextContent(
-        `Updated ${LAST_EDITED_DURATION} ago`,
+        `Updated ${LAST_EDITED_DURATION}`,
       );
     });
   });

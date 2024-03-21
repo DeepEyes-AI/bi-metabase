@@ -2,18 +2,20 @@ import userEvent from "@testing-library/user-event";
 
 import { createMockMetadata } from "__support__/metadata";
 import {
+  setupDatabasesEndpoints,
+  setupUnauthorizedDatabasesEndpoints,
+} from "__support__/server-mocks";
+import {
   fireEvent,
   renderWithProviders,
   screen,
   waitFor,
 } from "__support__/ui";
-import {
-  setupDatabasesEndpoints,
-  setupUnauthorizedDatabasesEndpoints,
-} from "__support__/server-mocks";
-
 import { checkNotNull } from "metabase/lib/types";
-
+import * as Lib from "metabase-lib";
+import Question from "metabase-lib/Question";
+import type NativeQuery from "metabase-lib/queries/NativeQuery";
+import { HARD_ROW_LIMIT } from "metabase-lib/queries/utils";
 import type { Card, Dataset, UnsavedCard } from "metabase-types/api";
 import {
   createMockDataset,
@@ -30,11 +32,6 @@ import {
 } from "metabase-types/api/mocks/presets";
 import { createMockQueryBuilderState } from "metabase-types/store/mocks";
 
-import * as Lib from "metabase-lib";
-import { HARD_ROW_LIMIT } from "metabase-lib/queries/utils";
-import Question from "metabase-lib/Question";
-import type NativeQuery from "metabase-lib/queries/NativeQuery";
-
 import QuestionRowCount from "./QuestionRowCount";
 
 type SetupOpts = {
@@ -45,13 +42,14 @@ type SetupOpts = {
 };
 
 function patchQuestion(question: Question) {
-  if (question.isStructured()) {
-    const query = question._getMLv2Query();
+  const query = question.query();
+  const { isNative } = Lib.queryDisplayInfo(question.query());
+  if (!isNative) {
     const [sampleColumn] = Lib.orderableColumns(query, 0);
     const nextQuery = Lib.orderBy(query, 0, sampleColumn);
     return question.setDatasetQuery(Lib.toLegacyQuery(nextQuery));
   } else {
-    const query = question.query() as NativeQuery;
+    const query = question.legacyQuery() as NativeQuery;
     return query.setQueryText("SELECT * FROM __ORDERS__").question();
   }
 }

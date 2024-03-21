@@ -1,12 +1,18 @@
-import type * as React from "react";
 import userEvent from "@testing-library/user-event";
+import type * as React from "react";
+
+import {
+  setupActionsEndpoints,
+  setupCardsEndpoints,
+  setupDatabasesEndpoints,
+  setupSearchEndpoints,
+} from "__support__/server-mocks";
 import {
   screen,
   waitFor,
   renderWithProviders,
   waitForLoaderToBeRemoved,
 } from "__support__/ui";
-
 import {
   createMockDashboard,
   createMockActionDashboardCard,
@@ -17,13 +23,7 @@ import {
   createMockCollectionItem,
 } from "metabase-types/api/mocks";
 
-import {
-  setupActionsEndpoints,
-  setupCardsEndpoints,
-  setupDatabasesEndpoints,
-  setupSearchEndpoints,
-} from "__support__/server-mocks";
-import { ActionSidebarFn } from "./ActionSidebar";
+import { ActionSidebar } from "./ActionSidebar";
 
 const dashcard = createMockDashboardCard();
 const actionDashcard = createMockActionDashboardCard({ id: 2 });
@@ -44,7 +44,7 @@ const dashboard = createMockDashboard({
 });
 
 const setup = (
-  options?: Partial<React.ComponentProps<typeof ActionSidebarFn>>,
+  options?: Partial<React.ComponentProps<typeof ActionSidebar>>,
 ) => {
   setupDatabasesEndpoints([actionsDatabase]);
   setupSearchEndpoints([collectionItem]);
@@ -55,7 +55,7 @@ const setup = (
   const closeSpy = jest.fn();
 
   renderWithProviders(
-    <ActionSidebarFn
+    <ActionSidebar
       onUpdateVisualizationSettings={vizUpdateSpy}
       onClose={closeSpy}
       dashboard={dashboard}

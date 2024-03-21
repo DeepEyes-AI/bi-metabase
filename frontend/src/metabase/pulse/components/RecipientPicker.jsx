@@ -1,14 +1,16 @@
 /* eslint "react/prop-types": "warn" */
-import { Component } from "react";
 import PropTypes from "prop-types";
+import { Component } from "react";
 import { t } from "ttag";
-import { recipientIsValid } from "metabase/lib/pulse";
-import * as MetabaseAnalytics from "metabase/lib/analytics";
-import MetabaseSettings from "metabase/lib/settings";
-import { isEmail } from "metabase/lib/utils";
+
 import TokenField from "metabase/components/TokenField";
 import UserAvatar from "metabase/components/UserAvatar";
+import * as MetabaseAnalytics from "metabase/lib/analytics";
+import { recipientIsValid } from "metabase/lib/pulse";
+import MetabaseSettings from "metabase/lib/settings";
+import { isEmail } from "metabase/lib/utils";
 import { Text } from "metabase/ui";
+
 import { ErrorMessage } from "./RecipientPicker.styled";
 
 export default class RecipientPicker extends Component {
@@ -58,7 +60,7 @@ export default class RecipientPicker extends Component {
 
     return (
       <div>
-        <div className="bordered rounded" style={{ padding: "2px" }}>
+        <div style={{ padding: "2px" }}>
           <TokenField
             value={recipients}
             options={users ? users.map(user => ({ value: user })) : []}

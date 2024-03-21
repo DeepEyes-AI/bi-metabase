@@ -10,6 +10,7 @@
    [metabase.db.query :as mdb.query]
    [metabase.models.collection :as collection]
    [metabase.models.interface :as mi]
+   [metabase.models.permissions :as perms]
    [metabase.public-settings.premium-features :as premium-features]
    [metabase.search.config :as search.config :refer [SearchableModel SearchContext]]
    [metabase.search.filter :as search.filter]
@@ -116,7 +117,7 @@
                                   visible-collections)]
     (cond-> honeysql-query
       true
-      (sql.helpers/where  collection-filter-clause [:= :collection.namespace nil])
+      (sql.helpers/where collection-filter-clause (perms/audit-namespace-clause :collection.namespace nil))
       ;; add a JOIN against Collection *unless* the source table is already Collection
       (not= collection-id-column :collection.id)
       (sql.helpers/left-join [:collection :collection]
@@ -276,13 +277,48 @@
       (sql.helpers/left-join [:metabase_table :table] [:= :metric.table_id :table.id])
       (with-last-editing-info model)))
 
+(defn- add-model-index-permissions-clause
+  [query current-user-perms]
+  (let [build-path (fn [x y z] (h2x/concat (h2x/literal x) y (h2x/literal z)))
+        has-perm-clause (fn [x y z] [:in (build-path x y z) current-user-perms])]
+    (if (contains? current-user-perms "/")
+      query
+      ;; Select indexed rows if user has /db/:id/ OR (/db/:id/native/ AND /db/:id/schema/) - aka full access to the database
+      ;; in at least one group. (Access to only a subset of tables isn't enough, since models can be based on native
+      ;; queries.)
+      ;; AND
+      ;; User has /collection/:id/ or /collection/:id/read/ for the collection the model is in.
+      (let [data-perm-clause
+            [:or
+             (has-perm-clause "/db/" :model.database_id "/")
+             [:and
+              (has-perm-clause "/db/" :model.database_id "/native/")
+              (has-perm-clause "/db/" :model.database_id "/schema/")]]
+
+            has-root-access?
+            (or (contains? current-user-perms "/collection/root/")
+                (contains? current-user-perms "/collection/root/read/"))
+
+            collection-perm-clause
+            [:or
+             (when has-root-access? [:= :model.collection_id nil])
+             [:and
+              [:not= :model.collection_id nil]
+              [:or
+               (has-perm-clause "/collection/" :model.collection_id "/")
+               (has-perm-clause "/collection/" :model.collection_id "/read/")]]]]
+        (sql.helpers/where
+         query
+         [:and data-perm-clause collection-perm-clause])))))
+
 (defmethod search-query-for-model "indexed-entity"
-  [model search-ctx]
+  [model {:keys [current-user-perms] :as search-ctx}]
   (-> (base-query-for-model model search-ctx)
       (sql.helpers/left-join [:model_index :model-index]
                              [:= :model-index.id :model-index-value.model_index_id])
       (sql.helpers/left-join [:report_card :model] [:= :model-index.model_id :model.id])
-      (sql.helpers/left-join [:collection :collection] [:= :model.collection_id :collection.id])))
+      (sql.helpers/left-join [:collection :collection] [:= :model.collection_id :collection.id])
+      (add-model-index-permissions-clause current-user-perms)))
 
 (defmethod search-query-for-model "segment"
   [model search-ctx]
@@ -333,25 +369,33 @@
     [(into [:case] case-clauses)]))
 
 (defmulti ^:private check-permissions-for-model
-  {:arglists '([search-result])}
-  (comp keyword :model))
+  {:arglists '([archived? search-result])}
+  (fn [_ search-result] ((comp keyword :model) search-result)))
 
 (defmethod check-permissions-for-model :default
-  [_]
-  ;; We filter what we can (ie. everything that is in a collection) out already when querying
-  true)
+  [archived? instance]
+  (if archived?
+    (mi/can-write? instance)
+    ;; We filter what we can (ie. everything that is in a collection) out already when querying
+    true))
 
 (defmethod check-permissions-for-model :metric
-  [instance]
-  (mi/can-read? instance))
+  [archived? instance]
+  (if archived?
+    (mi/can-write? instance)
+    (mi/can-read? instance)))
 
 (defmethod check-permissions-for-model :segment
-  [instance]
-  (mi/can-read? instance))
+  [archived? instance]
+  (if archived?
+    (mi/can-write? instance)
+    (mi/can-read? instance)))
 
 (defmethod check-permissions-for-model :database
-  [instance]
-  (mi/can-read? instance))
+  [archived? instance]
+  (if archived?
+    (mi/can-write? instance)
+    (mi/can-read? instance)))
 
 (mu/defn query-model-set :- [:set SearchableModel]
   "Queries all models with respect to query for one result to see if we get a result or not"
@@ -416,7 +460,7 @@
         xf                 (comp
                             (map t2.realize/realize)
                             (map to-toucan-instance)
-                            (filter check-permissions-for-model)
+                            (filter (partial check-permissions-for-model (:archived? search-ctx)))
                             ;; MySQL returns `:bookmark` and `:archived` as `1` or `0` so convert those to boolean as
                             ;; needed
                             (map #(update % :bookmark api/bit->boolean))

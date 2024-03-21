@@ -1,13 +1,14 @@
 /* eslint-disable react/prop-types */
 import SyncedParametersList from "metabase/parameters/components/SyncedParametersList/SyncedParametersList";
-import { ACE_ELEMENT_ID } from "metabase/query_builder/components/NativeQueryEditor/constants";
 import DataSourceSelectors from "metabase/query_builder/components/NativeQueryEditor/DataSourceSelectors";
+import { ACE_ELEMENT_ID } from "metabase/query_builder/components/NativeQueryEditor/constants";
 
 const MockNativeQueryEditor = ({
   canChangeDatabase = true,
   editorContext = "question",
   isNativeEditorOpen,
   query,
+  question,
   readOnly,
   setDatasetQuery,
   setParameterValue,
@@ -17,7 +18,7 @@ const MockNativeQueryEditor = ({
   };
 
   const onDatabaseIdChange = databaseId => {
-    if (query.databaseId() !== databaseId) {
+    if (question.databaseId() !== databaseId) {
       setDatasetQuery(query.setDatabaseId(databaseId).setDefaultCollection());
     }
   };
@@ -35,6 +36,7 @@ const MockNativeQueryEditor = ({
         <DataSourceSelectors
           isNativeEditorOpen={isNativeEditorOpen}
           query={query}
+          question={question}
           readOnly={readOnly}
           setDatabaseId={onDatabaseIdChange}
           setTableId={onTableIdChange}

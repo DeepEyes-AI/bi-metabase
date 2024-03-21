@@ -4,9 +4,7 @@ import { t } from "ttag";
 import _ from "underscore";
 
 import Select from "metabase/core/components/Select";
-
 import Databases from "metabase/entities/databases";
-
 import type Field from "metabase-lib/metadata/Field";
 
 type FieldObject = {
@@ -39,7 +37,7 @@ function getOptionValue(option: FieldObject) {
   return option.id;
 }
 
-function getOptionIcon(option: FieldObject) {
+function getOptionIcon() {
   return null;
 }
 

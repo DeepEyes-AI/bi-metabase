@@ -59,7 +59,7 @@
             [:and
              [:< :fingerprint_version 2]
              [:in :base_type #{"type/Decimal" "type/Latitude" "type/Longitude" "type/Coordinate" "type/Currency" "type/Float"
-                               "type/Share" "type/Income" "type/Price" "type/Discount" "type/GrossMargin" "type/Cost"}]]
+                               "type/Share" "type/Income" "type/Price" "type/Discount" "type/GrossMargin" "type/Cost" "type/Percentage"}]]
             [:and
              [:< :fingerprint_version 1]
              [:in :base_type #{"type/ImageURL" "type/AvatarURL"}]]]]}
@@ -81,7 +81,7 @@
               [:and
                [:< :fingerprint_version 2]
                [:in :base_type #{"type/Decimal" "type/Latitude" "type/Longitude" "type/Coordinate" "type/Currency" "type/Float"
-                                 "type/Share" "type/Income" "type/Price" "type/Discount" "type/GrossMargin" "type/Cost"}]]
+                                 "type/Share" "type/Income" "type/Price" "type/Discount" "type/GrossMargin" "type/Cost" "type/Percentage"}]]
               ;; no type/Float stuff should be included for 1
               [:and
                [:< :fingerprint_version 1]
@@ -104,7 +104,7 @@
               [:and
                [:< :fingerprint_version 4]
                [:in :base_type #{"type/Decimal" "type/Latitude" "type/Longitude" "type/Coordinate" "type/Currency" "type/Float"
-                                 "type/Share" "type/Income" "type/Price" "type/Discount" "type/GrossMargin" "type/Cost"}]]
+                                 "type/Share" "type/Income" "type/Price" "type/Discount" "type/GrossMargin" "type/Cost" "type/Percentage"}]]
               [:and
                [:< :fingerprint_version 3]
                [:in :base_type #{"type/URL" "type/ImageURL" "type/AvatarURL"}]]
@@ -280,10 +280,11 @@
         (is (= (fingerprint/empty-stats-map 0)
                (fingerprint/fingerprint-fields-for-db! fake-db [(t2/select-one Table :id (data/id :venues))] (fn [_ _]))))))))
 
-(deftest ^:parallel fingerprint-test
+(deftest fingerprint-test
   (mt/test-drivers (mt/normal-drivers)
     (testing "Fingerprints should actually get saved with the correct values"
       (testing "Text fingerprints"
+        (fingerprint/fingerprint-fields! (t2/select-one Table :id (data/id :venues)))
         (is (=? {:global {:distinct-count 100
                           :nil%           0.0}
                  :type   {:type/Text {:percent-json   0.0

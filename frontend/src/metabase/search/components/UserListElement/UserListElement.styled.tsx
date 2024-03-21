@@ -1,5 +1,6 @@
 import styled from "@emotion/styled";
 import type { HTMLAttributes } from "react";
+
 import type { ButtonProps } from "metabase/ui";
 import { Button } from "metabase/ui";
 
@@ -7,7 +8,7 @@ export const UserElement = styled(Button)<
   HTMLAttributes<HTMLButtonElement> & ButtonProps
 >`
   &:hover {
-    background-color: ${({ theme }) => theme.colors.brand[0]};
+    background-color: ${({ theme }) => theme.fn.themeColor("brand-lighter")};
   }
 
   & > div {

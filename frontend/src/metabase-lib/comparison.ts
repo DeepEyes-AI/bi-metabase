@@ -4,6 +4,7 @@ import type {
   DatasetQuery,
   FieldReference,
 } from "metabase-types/api";
+
 import type { ColumnMetadata, Query } from "./types";
 
 export function areLegacyQueriesEqual(
@@ -12,6 +13,15 @@ export function areLegacyQueriesEqual(
   fieldIds?: number[],
 ): boolean {
   return ML.query_EQ_(query1, query2, fieldIds);
+}
+
+export function findMatchingColumn(
+  query: Query,
+  stageIndex: number,
+  column: ColumnMetadata,
+  columns: ColumnMetadata[],
+): ColumnMetadata | null {
+  return ML.find_matching_column(query, stageIndex, column, columns);
 }
 
 export function findColumnIndexesFromLegacyRefs(

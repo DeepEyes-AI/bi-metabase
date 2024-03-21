@@ -1,22 +1,31 @@
 import { Component } from "react";
-import { t } from "ttag";
-import _ from "underscore";
 import { connect } from "react-redux";
 import { Link } from "react-router";
+import { t } from "ttag";
+import _ from "underscore";
 
-import Schemas from "metabase/entities/schemas";
-import Toggle from "metabase/core/components/Toggle";
 import InputBlurChange from "metabase/components/InputBlurChange";
 import type { SelectChangeEvent } from "metabase/core/components/Select";
 import Select, { Option } from "metabase/core/components/Select";
-
+import Schemas from "metabase/entities/schemas";
+import MetabaseSettings from "metabase/lib/settings";
+import { RequiredParamToggle } from "metabase/parameters/components/RequiredParamToggle";
 import ValuesSourceSettings from "metabase/parameters/components/ValuesSourceSettings";
-
+import type { EmbeddingParameterVisibility } from "metabase/public/lib/types";
+import { SchemaTableAndFieldDataSelector } from "metabase/query_builder/components/DataSelector";
 import { fetchField } from "metabase/redux/metadata";
 import { getMetadata } from "metabase/selectors/metadata";
-import { SchemaTableAndFieldDataSelector } from "metabase/query_builder/components/DataSelector";
-import MetabaseSettings from "metabase/lib/settings";
-
+import { Text } from "metabase/ui";
+import type Database from "metabase-lib/metadata/Database";
+import type Field from "metabase-lib/metadata/Field";
+import type Metadata from "metabase-lib/metadata/Metadata";
+import type Table from "metabase-lib/metadata/Table";
+import { canUseCustomSource } from "metabase-lib/parameters/utils/parameter-source";
+import {
+  getDefaultParameterOptions,
+  getDefaultParameterWidgetType,
+  getParameterOptionsForField,
+} from "metabase-lib/parameters/utils/template-tag-options";
 import type {
   DimensionReference,
   FieldId,
@@ -30,17 +39,6 @@ import type {
   ValuesSourceType,
 } from "metabase-types/api";
 import type { State } from "metabase-types/store";
-import type Metadata from "metabase-lib/metadata/Metadata";
-import type Database from "metabase-lib/metadata/Database";
-import type Table from "metabase-lib/metadata/Table";
-import type Field from "metabase-lib/metadata/Field";
-
-import { canUseCustomSource } from "metabase-lib/parameters/utils/parameter-source";
-import {
-  getDefaultParameterOptions,
-  getDefaultParameterWidgetType,
-  getParameterOptionsForField,
-} from "metabase-lib/parameters/utils/template-tag-options";
 
 import {
   ContainerLabel,
@@ -54,6 +52,7 @@ import {
 interface Props {
   tag: TemplateTag;
   parameter: Parameter;
+  embeddedParameterVisibility?: EmbeddingParameterVisibility | null;
   database?: Database | null;
   databases: Database[];
   databaseFields?: Field[];
@@ -117,13 +116,17 @@ class TagEditorParamInner extends Component<Props> {
     }
   }
 
-  setRequired(required: boolean) {
-    const { tag, setTemplateTag } = this.props;
+  setRequired = (required: boolean) => {
+    const { tag, parameter, setTemplateTag, setParameterValue } = this.props;
 
     if (tag.required !== required) {
-      setTemplateTag({ ...tag, required: required, default: undefined });
+      setTemplateTag({ ...tag, required: required });
     }
-  }
+
+    if (!parameter.value && required && tag.default) {
+      setParameterValue(tag.id, tag.default);
+    }
+  };
 
   setQueryType = (queryType: ValuesQueryType) => {
     const { tag, parameter, setTemplateTagConfig } = this.props;
@@ -196,7 +199,14 @@ class TagEditorParamInner extends Component<Props> {
   };
 
   render() {
-    const { tag, database, databases, metadata, parameter } = this.props;
+    const {
+      tag,
+      database,
+      databases,
+      metadata,
+      parameter,
+      embeddedParameterVisibility,
+    } = this.props;
     let widgetOptions: { name?: string; type: string }[] = [];
     let field: Field | null = null;
     let table: Table | null | undefined = null;
@@ -217,9 +227,11 @@ class TagEditorParamInner extends Component<Props> {
     const hasNoWidgetType =
       tag["widget-type"] === "none" || !tag["widget-type"];
     const hasNoWidgetLabel = !tag["display-name"];
+    const hasNoDefaultValue = !tag.default;
+    const isEmbeddedDisabled = embeddedParameterVisibility === "disabled";
 
     return (
-      <TagContainer>
+      <TagContainer data-testid={`tag-editor-variable-${tag.name}`}>
         <ContainerLabel paddingTop>{t`Variable name`}</ContainerLabel>
         <TagName>{tag.name}</TagName>
 
@@ -280,7 +292,7 @@ class TagEditorParamInner extends Component<Props> {
           <InputContainer>
             <ContainerLabel>
               {t`Filter widget type`}
-              {hasNoWidgetType && <ErrorSpan>{t`(required)`}</ErrorSpan>}
+              {hasNoWidgetType && <ErrorSpan>({t`required`})</ErrorSpan>}
             </ContainerLabel>
             <Select
               className="block"
@@ -304,6 +316,7 @@ class TagEditorParamInner extends Component<Props> {
               <p>
                 {t`There aren't any filter widgets for this type of field yet.`}{" "}
                 <Link
+                  // eslint-disable-next-line no-unconditional-metabase-links-render -- It's hard to tell if this is still used in the app. Please see https://metaboat.slack.com/archives/C505ZNNH4/p1703243785315819
                   to={MetabaseSettings.docsUrl(
                     "questions/native-editor/sql-parameters",
                     "the-field-filter-variable-type",
@@ -322,10 +335,10 @@ class TagEditorParamInner extends Component<Props> {
           <InputContainer>
             <ContainerLabel>
               {t`Filter widget label`}
-              {hasNoWidgetLabel && <ErrorSpan>{t`(required)`}</ErrorSpan>}
+              {hasNoWidgetLabel && <ErrorSpan>({t`required`})</ErrorSpan>}
             </ContainerLabel>
             <InputBlurChange
-              id="tag-editor-display-name"
+              id={`tag-editor-display-name_${tag.id}`}
               type="text"
               value={tag["display-name"]}
               onBlurChange={e =>
@@ -346,46 +359,63 @@ class TagEditorParamInner extends Component<Props> {
           </InputContainer>
         )}
 
-        <InputContainer lessBottomPadding>
-          <ContainerLabel>{t`Required?`}</ContainerLabel>
-          <Toggle
-            id="tag-editor-required"
-            value={tag.required}
-            onChange={value => this.setRequired(value)}
+        <div>
+          <ContainerLabel>
+            {t`Default filter widget value`}
+            {hasNoDefaultValue && tag.required && (
+              <ErrorSpan>({t`required`})</ErrorSpan>
+            )}
+          </ContainerLabel>
+          <DefaultParameterValueWidget
+            parameter={
+              tag.type === "text" || tag.type === "dimension"
+                ? parameter || {
+                    fields: [],
+                    ...tag,
+                    type: tag["widget-type"] || null,
+                  }
+                : {
+                    fields: [],
+                    hasVariableTemplateTagTarget: true,
+                    type:
+                      tag["widget-type"] ||
+                      (tag.type === "date" ? "date/single" : null),
+                  }
+            }
+            value={tag.default}
+            setValue={value => {
+              this.setParameterAttribute("default", value);
+              this.props.setParameterValue(tag.id, value);
+            }}
+            isEditing
+            commitImmediately
           />
-        </InputContainer>
 
-        {((tag.type !== "dimension" && tag.required) ||
-          tag.type === "dimension" ||
-          (tag["widget-type"] && tag["widget-type"] !== "none")) && (
-          <InputContainer lessBottomPadding>
-            <ContainerLabel>{t`Default filter widget value`}</ContainerLabel>
-            <DefaultParameterValueWidget
-              parameter={
-                tag.type === "text" || tag.type === "dimension"
-                  ? parameter || {
-                      fields: [],
-                      ...tag,
-                      type: tag["widget-type"] || null,
-                    }
-                  : {
-                      fields: [],
-                      hasVariableTemplateTagTarget: true,
-                      type:
-                        tag["widget-type"] ||
-                        (tag.type === "date" ? "date/single" : null),
-                    }
-              }
-              value={tag.default}
-              setValue={value => {
-                this.setParameterAttribute("default", value);
-                this.props.setParameterValue(tag.id, value);
-              }}
-              isEditing
-              commitImmediately
-            />
-          </InputContainer>
-        )}
+          <RequiredParamToggle
+            uniqueId={tag.id}
+            disabled={isEmbeddedDisabled}
+            value={tag.required ?? false}
+            onChange={this.setRequired}
+            disabledTooltip={
+              <>
+                <Text lh={1.4}>
+                  {t`This filter is set to disabled in an embedded question.`}
+                </Text>
+                <Text lh={1.4}>
+                  {t`To always require a value, first visit embedding settings,
+                    make this filter editable or locked, re-publish the
+                    question, then return to this page.`}
+                </Text>
+                <Text size="sm">
+                  {t`Note`}:{" "}
+                  {t`making it locked, will require updating the
+                    embedding code before proceeding, otherwise the embed will
+                    break.`}
+                </Text>
+              </>
+            }
+          />
+        </div>
       </TagContainer>
     );
   }

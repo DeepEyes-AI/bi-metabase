@@ -1,31 +1,35 @@
-import { connect } from "react-redux";
+import { useCallback } from "react";
 import { t } from "ttag";
+
+import { useSelector } from "metabase/lib/redux";
 import MetabaseSettings from "metabase/lib/settings";
+import { checkNotNull } from "metabase/lib/types";
 import {
   getNativeQueryFn,
   getQuestion,
 } from "metabase/query_builder/selectors";
-import type { NativeQueryForm } from "metabase-types/api";
-import type { State } from "metabase-types/store";
-import type Question from "metabase-lib/Question";
+import { getShowMetabaseLinks } from "metabase/selectors/whitelabel";
+
 import NativeQueryModal, { useNativeQuery } from "../NativeQueryModal";
+
 import { ModalExternalLink } from "./PreviewQueryModal.styled";
 
 interface PreviewQueryModalProps {
-  question: Question;
-  onLoadQuery: ({ pretty }: { pretty?: boolean }) => Promise<NativeQueryForm>;
   onClose?: () => void;
 }
 
-const PreviewQueryModal = ({
-  question,
-  onLoadQuery,
+export const PreviewQueryModal = ({
   onClose,
 }: PreviewQueryModalProps): JSX.Element => {
-  const { query, error, isLoading } = useNativeQuery(question, () =>
-    onLoadQuery({ pretty: false }),
+  const question = checkNotNull(useSelector(getQuestion));
+  const onLoadQuery = useSelector(getNativeQueryFn);
+  const handleLoadQuery = useCallback(
+    () => onLoadQuery({ pretty: false }),
+    [onLoadQuery],
   );
+  const { query, error, isLoading } = useNativeQuery(question, handleLoadQuery);
   const learnUrl = MetabaseSettings.learnUrl("debugging-sql/sql-syntax");
+  const showMetabaseLinks = useSelector(getShowMetabaseLinks);
 
   return (
     <NativeQueryModal
@@ -35,7 +39,7 @@ const PreviewQueryModal = ({
       isLoading={isLoading}
       onClose={onClose}
     >
-      {error && (
+      {error && showMetabaseLinks && (
         <ModalExternalLink href={learnUrl}>
           {t`Learn how to debug SQL errors`}
         </ModalExternalLink>
@@ -43,13 +47,3 @@ const PreviewQueryModal = ({
     </NativeQueryModal>
   );
 };
-
-const mapStateToProps = (state: State) => ({
-  // FIXME: remove the non-null assertion operator
-  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-  question: getQuestion(state)!,
-  onLoadQuery: getNativeQueryFn(state),
-});
-
-// eslint-disable-next-line import/no-default-export -- deprecated usage
-export default connect(mapStateToProps)(PreviewQueryModal);

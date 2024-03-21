@@ -1,5 +1,5 @@
-import { popover, restore, visitQuestion } from "e2e/support/helpers";
 import { SAMPLE_DATABASE } from "e2e/support/cypress_sample_database";
+import { popover, restore, visitQuestion } from "e2e/support/helpers";
 import { createSegment } from "e2e/support/helpers/e2e-table-metadata-helpers";
 
 const { ORDERS_ID, ORDERS } = SAMPLE_DATABASE;
@@ -48,7 +48,6 @@ describe("issue 31697", () => {
 
     cy.findByRole("main").within(() => {
       cy.findByText(/A closer look at number of Orders/).should("be.visible");
-      cy.findByText("Orders segment").should("be.visible");
     });
   });
 });

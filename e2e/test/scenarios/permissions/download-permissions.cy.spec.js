@@ -1,3 +1,9 @@
+import { SAMPLE_DB_ID, USER_GROUPS } from "e2e/support/cypress_data";
+import { SAMPLE_DATABASE } from "e2e/support/cypress_sample_database";
+import {
+  ORDERS_DASHBOARD_ID,
+  ORDERS_QUESTION_ID,
+} from "e2e/support/cypress_sample_instance_data";
 import {
   restore,
   modal,
@@ -12,14 +18,6 @@ import {
   popover,
   setTokenFeatures,
 } from "e2e/support/helpers";
-
-import { SAMPLE_DATABASE } from "e2e/support/cypress_sample_database";
-
-import { SAMPLE_DB_ID, USER_GROUPS } from "e2e/support/cypress_data";
-import {
-  ORDERS_DASHBOARD_ID,
-  ORDERS_QUESTION_ID,
-} from "e2e/support/cypress_sample_instance_data";
 
 const { ALL_USERS_GROUP } = USER_GROUPS;
 
@@ -153,8 +151,6 @@ describeEE("scenarios > admin > permissions > data > downloads", () => {
     cy.signInAsNormalUser();
     visitQuestion(ORDERS_QUESTION_ID);
 
-    cy.icon("download").click();
-
     downloadAndAssert(
       { fileType: "xlsx", questionId: ORDERS_QUESTION_ID },
       assertSheetRowsCount(10000),
@@ -182,14 +178,10 @@ describeEE("scenarios > admin > permissions > data > downloads", () => {
       cy.get("@nativeQuestionId").then(id => {
         visitQuestion(id);
 
-        cy.icon("download").click();
-
         downloadAndAssert(
           { fileType: "xlsx", questionId: id },
           assertSheetRowsCount(18760),
         );
-
-        cy.icon("download").click();
 
         // Make sure we can download results from an ad-hoc nested query based on a native question
         cy.findByText("Explore results").click();
@@ -201,8 +193,6 @@ describeEE("scenarios > admin > permissions > data > downloads", () => {
         cy.request("PUT", `/api/card/${id}`, { name: "Native Model" });
 
         visitQuestion(id);
-
-        cy.icon("download").click();
 
         downloadAndAssert(
           { fileType: "xlsx", questionId: id },
@@ -247,8 +237,6 @@ describeEE("scenarios > admin > permissions > data > downloads", () => {
       cy.get("@nativeQuestionId").then(id => {
         visitQuestion(id);
 
-        cy.icon("download").click();
-
         downloadAndAssert(
           { fileType: "xlsx", questionId: id },
           assertSheetRowsCount(10000),
@@ -258,16 +246,12 @@ describeEE("scenarios > admin > permissions > data > downloads", () => {
         cy.findByText("Explore results").click();
         cy.wait("@dataset");
 
-        cy.icon("download").click();
-
         downloadAndAssert({ fileType: "xlsx" }, assertSheetRowsCount(10000));
 
         // Convert question to a model, which should also have a download row limit
         cy.request("PUT", `/api/card/${id}`, { name: "Native Model" });
 
         visitQuestion(id);
-
-        cy.icon("download").click();
 
         downloadAndAssert(
           { fileType: "xlsx", questionId: id },

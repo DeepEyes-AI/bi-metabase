@@ -4,11 +4,22 @@
    [clojure.string :as str]
    [clojure.test :refer :all]
    [metabase.config :as config]
+   [metabase.db :as mdb]
+   [metabase.db.schema-migrations-test.impl
+    :as schema-migrations-test.impl]
    [metabase.http-client :as client]
    [metabase.integrations.google]
    [metabase.models
-    :refer [Collection Database PermissionsGroup PermissionsGroupMembership
-            Pulse PulseChannel PulseChannelRecipient Session Table User]]
+    :refer [Collection
+            Database
+            PermissionsGroup
+            PermissionsGroupMembership
+            Pulse
+            PulseChannel
+            PulseChannelRecipient
+            Session
+            Table
+            User]]
    [metabase.models.collection :as collection]
    [metabase.models.collection-test :as collection-test]
    [metabase.models.permissions :as perms]
@@ -17,7 +28,6 @@
    [metabase.models.serialization :as serdes]
    [metabase.models.setting :as setting]
    [metabase.models.user :as user]
-   [metabase.public-settings.premium-features-test :as premium-features-test]
    [metabase.server.middleware.session :as mw.session]
    [metabase.test :as mt]
    [metabase.test.data.users :as test.users]
@@ -187,7 +197,7 @@
                      (select-keys ["crowberto@metabase.com" (:email user)])))))
 
         (testing "...or if setting is disabled"
-          (premium-features-test/with-premium-features #{:sso-ldap}
+          (mt/with-premium-features #{:sso-ldap}
             (mt/with-temporary-raw-setting-values [send-new-sso-user-admin-email? "false"]
               (t2.with-temp/with-temp [User _ {:is_superuser true, :email "some_other_admin@metabase.com"}]
                 (is (= (if config/ee-available? {} {"crowberto@metabase.com" ["<New User> created a Metabase account"],
@@ -196,7 +206,7 @@
                            (select-keys ["crowberto@metabase.com" "some_other_admin@metabase.com"])))))))))))
 
  (testing "if sso enabled and password login is disabled, email should send a link to sso login"
-   (premium-features-test/with-premium-features #{:disable-password-login}
+   (mt/with-premium-features #{:disable-password-login}
      (mt/with-temporary-setting-values [enable-password-login false]
        (ldap.test/with-ldap-server
          (invite-user-accept-and-check-inboxes! :invitor default-invitor , :accept-invite? false)
@@ -384,11 +394,12 @@
       (testing "Invalid ADD operation"
         ;; User should not be removed from the admin group because the attempt to add them to the Integer/MAX_VALUE group
         ;; should fail, causing the entire transaction to fail
-        (mt/with-temp! [User user {:is_superuser true}]
-          (u/ignore-exceptions
-            (user/set-permissions-groups! user #{(perms-group/all-users) Integer/MAX_VALUE}))
-          (is (= true
-                 (t2/select-one-fn :is_superuser User :id (u/the-id user))))))
+        (mt/test-helpers-set-global-values!
+          (mt/with-temp [User user {:is_superuser true}]
+            (u/ignore-exceptions
+              (user/set-permissions-groups! user #{(perms-group/all-users) Integer/MAX_VALUE}))
+            (is (= true
+                   (t2/select-one-fn :is_superuser User :id (u/the-id user)))))))
 
       (testing "Invalid REMOVE operation"
         ;; Attempt to remove someone from All Users + add to a valid group at the same time -- neither should persist
@@ -546,6 +557,7 @@
              (:common_name (t2/select-one User (:id user)))))
       (is (nil? (:common_name (t2/select-one [User :first_name :email] (:id user)))))
       (is (nil? (:common_name (t2/select-one [User :email] (:id user)))))))
+
   (testing "common_name should be present if first_name and last_name are selected but nil and email is also selected"
     (mt/with-temp [User user {:first_name nil
                               :last_name  nil
@@ -553,3 +565,17 @@
       (is (= "john.smith@gmail.com"
              (:common_name (t2/select-one [User :email :first_name :last_name] (:id user)))))
       (is (nil? (:common_name (t2/select-one [User :first_name :last_name] (:id user))))))))
+
+(deftest block-sso-provisioning-if-instance-not-set-up
+  (testing "SSO users should not be created if an admin user has not already been created (metabase-private#201)"
+    (schema-migrations-test.impl/with-temp-empty-app-db [_conn :h2]
+      (mdb/setup-db!)
+      (is (thrown-with-msg?
+           Exception
+           #"Instance has not been initialized"
+           (user/create-and-invite-user! {:first_name "John"
+                                          :last_name  "Smith"
+                                          :email      "john.smith@gmail.com"
+                                          :sso_source "jwt"}
+                                         default-invitor
+                                         false))))))

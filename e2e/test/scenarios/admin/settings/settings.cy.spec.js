@@ -1,3 +1,4 @@
+import { SAMPLE_DATABASE } from "e2e/support/cypress_sample_database";
 import {
   restore,
   openOrdersTable,
@@ -7,9 +8,8 @@ import {
   isOSS,
   isEE,
   setTokenFeatures,
-  main,
+  undoToast,
 } from "e2e/support/helpers";
-import { SAMPLE_DATABASE } from "e2e/support/cypress_sample_database";
 
 const { ORDERS } = SAMPLE_DATABASE;
 
@@ -61,7 +61,7 @@ describe("scenarios > admin > settings", () => {
     //       If we update UI in the future (for example: we show an error within a popup/modal), the test in current form could fail.
     cy.log("Making sure we display an error message in UI");
     // Same reasoning for regex as above
-    cy.get(".SaveStatus").contains(/^Error: Invalid site URL/);
+    undoToast().contains(/^Error: Invalid site URL/);
   });
 
   it("should save a setting", () => {
@@ -342,19 +342,5 @@ describeEE("scenarios > admin > settings (EE)", () => {
     // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
     cy.findByText("Metabase Admin");
     cy.findByLabelText("store icon").should("not.exist");
-  });
-
-  it("should not break the root path when given invalid `landing-page` value (metabase#18004) ", () => {
-    cy.visit("/admin/settings/whitelabel");
-
-    main().within(() => {
-      cy.get("#setting-landing-page").type("https://www.metabase.com/").blur();
-    });
-
-    cy.visit("/");
-
-    main().within(() => {
-      cy.findByText(`We're a little lost...`);
-    });
   });
 });

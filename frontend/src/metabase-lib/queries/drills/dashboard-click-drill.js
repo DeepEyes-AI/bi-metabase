@@ -1,16 +1,18 @@
-import _ from "underscore";
 import { getIn } from "icepick";
 import querystring from "querystring";
-import * as Urls from "metabase/lib/urls";
+import _ from "underscore";
+
 import { renderLinkURLForClick } from "metabase/lib/formatting/link";
+import * as Urls from "metabase/lib/urls";
+import * as Lib from "metabase-lib";
+import Question from "metabase-lib/Question";
 import {
   formatSourceForTarget,
   getDataFromClicked,
   getTargetForQueryParams,
 } from "metabase-lib/parameters/utils/click-behavior";
-import Question from "metabase-lib/Question";
-import * as ML_Urls from "metabase-lib/urls";
 import { isDate } from "metabase-lib/types/utils/isa";
+import * as ML_Urls from "metabase-lib/urls";
 
 export function getDashboardDrillType(clicked) {
   const clickBehavior = getClickBehavior(clicked);
@@ -43,6 +45,13 @@ export function getDashboardDrillType(clicked) {
   }
 
   return null;
+}
+
+export function getDashboardDrillTab(clicked) {
+  const clickBehavior = getClickBehavior(clicked);
+  const { tabId } = getClickBehaviorData(clicked, clickBehavior);
+
+  return tabId;
 }
 
 export function getDashboardDrillParameters(clicked) {
@@ -116,7 +125,11 @@ export function getDashboardDrillQuestionUrl(question, clicked) {
     clickBehavior,
   });
 
-  return targetQuestion.isStructured()
+  const isTargetQuestionNative = Lib.queryDisplayInfo(
+    targetQuestion.query(),
+  ).isNative;
+
+  return !isTargetQuestionNative
     ? ML_Urls.getUrlWithParameters(targetQuestion, parameters, queryParams)
     : `${ML_Urls.getUrl(targetQuestion)}?${querystring.stringify(queryParams)}`;
 }
@@ -135,10 +148,10 @@ function getClickBehavior(clicked) {
 
 function getClickBehaviorData(clicked, clickBehavior) {
   const data = getDataFromClicked(clicked);
-  const { type, linkType, parameterMapping, targetId } = clickBehavior;
+  const { type, linkType, parameterMapping, tabId, targetId } = clickBehavior;
   const { extraData } = clicked || {};
 
-  return { type, linkType, data, extraData, parameterMapping, targetId };
+  return { type, linkType, data, extraData, parameterMapping, tabId, targetId };
 }
 
 function getParameterIdValuePairs(

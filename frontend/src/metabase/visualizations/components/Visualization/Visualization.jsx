@@ -1,25 +1,26 @@
 /* eslint-disable react/prop-types */
+import { assoc } from "icepick";
 import { PureComponent } from "react";
 import { connect } from "react-redux";
 import { t } from "ttag";
-import { assoc } from "icepick";
 import _ from "underscore";
 
-import { Mode } from "metabase/visualizations/click-actions/Mode";
+import ErrorBoundary from "metabase/ErrorBoundary";
 import ExplicitSize from "metabase/components/ExplicitSize";
-
 import * as MetabaseAnalytics from "metabase/lib/analytics";
 import { formatNumber } from "metabase/lib/formatting";
 import { equals } from "metabase/lib/utils";
-
+import { getIsShowingRawTable } from "metabase/query_builder/selectors";
+import { getFont } from "metabase/styled-components/selectors";
 import {
   getVisualizationTransformed,
   extractRemappings,
 } from "metabase/visualizations";
+import { Mode } from "metabase/visualizations/click-actions/Mode";
+import { getMode } from "metabase/visualizations/click-actions/lib/modes";
 import ChartCaption from "metabase/visualizations/components/ChartCaption";
 import ChartTooltip from "metabase/visualizations/components/ChartTooltip";
 import { ConnectedClickActionsPopover } from "metabase/visualizations/components/ClickActions";
-
 import { performDefaultAction } from "metabase/visualizations/lib/action";
 import {
   MinRowsError,
@@ -27,12 +28,6 @@ import {
 } from "metabase/visualizations/lib/errors";
 import { getComputedSettingsForSeries } from "metabase/visualizations/lib/settings/visualization";
 import { isSameSeries, getCardKey } from "metabase/visualizations/lib/utils";
-
-import { getMode } from "metabase/visualizations/click-actions/lib/modes";
-import { getFont } from "metabase/styled-components/selectors";
-import { getIsShowingRawTable } from "metabase/query_builder/selectors";
-
-import ErrorBoundary from "metabase/ErrorBoundary";
 import { isRegularClickAction } from "metabase/visualizations/types";
 import Tooltip from "metabase/core/components/Tooltip";
 import { calculateTimeDifference } from "metabase/utils/utils";
@@ -56,6 +51,7 @@ import {
 const defaultProps = {
   errorMessageOverride: undefined,
   showTitle: false,
+  isAction: false,
   isDashboard: false,
   isEditing: false,
   isSettings: false,
@@ -71,6 +67,8 @@ const mapStateToProps = state => ({
   fontFamily: getFont(state),
   isRawTable: getIsShowingRawTable(state),
 });
+
+const SMALL_CARD_WIDTH_THRESHOLD = 150;
 
 class Visualization extends PureComponent {
   state = {
@@ -366,6 +364,7 @@ class Visualization extends PureComponent {
       height,
       headerIcon,
       errorIcon,
+      isAction,
       isSlow,
       isMobile,
       expectedDuration,
@@ -374,7 +373,7 @@ class Visualization extends PureComponent {
       onUpdateVisualizationSettings,
     } = this.props;
     const { visualization } = this.state;
-    const small = width < 330;
+    const small = width < SMALL_CARD_WIDTH_THRESHOLD;
 
     // these may be overridden below
     let { series, hovered, clicked } = this.state;
@@ -488,7 +487,7 @@ class Visualization extends PureComponent {
       (showTitle &&
         hasHeaderContent &&
         (loading || error || noResults || isHeaderEnabled)) ||
-      (replacementContent && (dashcard.size_y !== 1 || isMobile));
+      (replacementContent && (dashcard.size_y !== 1 || isMobile) && !isAction);
 
     return (
       <ErrorBoundary>

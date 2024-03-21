@@ -1,7 +1,8 @@
 import styled from "@emotion/styled";
-import { color, lighten } from "metabase/lib/colors";
-import { Icon } from "metabase/core/components/Icon";
+
 import LoadingSpinner from "metabase/components/LoadingSpinner";
+import { color, lighten } from "metabase/lib/colors";
+import { Icon } from "metabase/ui";
 import type { InitialSyncStatus } from "metabase-types/api";
 
 interface Props {

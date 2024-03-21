@@ -1,10 +1,11 @@
-import type { CollectionId, User } from "metabase-types/api";
 import { SearchBar } from "metabase/nav/components/search/SearchBar";
-import NewItemButton from "../NewItemButton";
-import ProfileLink from "../ProfileLink";
+import type { CollectionId } from "metabase-types/api";
+
 import CollectionBreadcrumbs from "../../containers/CollectionBreadcrumbs";
 import QuestionLineage from "../../containers/QuestionLineage";
-import AppBarLogo from "./AppBarLogo";
+import NewItemButton from "../NewItemButton";
+import { ProfileLink } from "../ProfileLink";
+
 import {
   AppBarLeftContainer,
   AppBarRightContainer,
@@ -13,9 +14,10 @@ import {
   AppBarProfileLinkContainer,
   AppBarLogoText,
 } from "./AppBarLarge.styled";
+import { AppBarLogo } from "./AppBarLogo";
+import { AppBarToggle } from "./AppBarToggle";
 
 export interface AppBarLargeProps {
-  currentUser: User;
   collectionId?: CollectionId;
   isNavBarOpen?: boolean;
   isNavBarEnabled?: boolean;
@@ -30,7 +32,6 @@ export interface AppBarLargeProps {
 }
 
 const AppBarLarge = ({
-  currentUser,
   collectionId,
   isNavBarOpen,
   isNavBarEnabled,
@@ -47,15 +48,15 @@ const AppBarLarge = ({
 
   return (
     <AppBarRoot isNavBarOpen={isNavBarVisible}>
-      <AppBarLeftContainer
-        isNavBarEnabled={isNavBarEnabled}
-        isLogoVisible={isLogoVisible}
-      >
+      <AppBarLeftContainer>
+        <AppBarToggle
+          isNavBarEnabled={isNavBarEnabled}
+          isNavBarOpen={isNavBarOpen}
+          onToggleClick={onToggleNavbar}
+        />
         <AppBarLogo
           isLogoVisible={isLogoVisible}
-          isNavBarOpen={isNavBarVisible}
           isNavBarEnabled={isNavBarEnabled}
-          onToggleClick={onToggleNavbar}
         />
         <AppBarLogoText>{`DeepEyes`}</AppBarLogoText>
         <AppBarInfoContainer
@@ -74,7 +75,7 @@ const AppBarLarge = ({
           {isNewButtonVisible && <NewItemButton collectionId={collectionId} />}
           {isProfileLinkVisible && (
             <AppBarProfileLinkContainer>
-              <ProfileLink user={currentUser} onLogout={onLogout} />
+              <ProfileLink onLogout={onLogout} />
             </AppBarProfileLinkContainer>
           )}
         </AppBarRightContainer>

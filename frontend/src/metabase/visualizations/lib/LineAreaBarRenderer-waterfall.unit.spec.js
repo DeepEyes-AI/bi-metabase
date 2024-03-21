@@ -1,6 +1,4 @@
 import "__support__/ui-mocks"; // included explicitly whereas with e2e tests it comes with __support__/e2e
-import registerVisualizations from "metabase/visualizations/register";
-
 import {
   NumberColumn,
   StringColumn,
@@ -9,6 +7,8 @@ import {
   createFixture,
   cleanupFixture,
 } from "__support__/visualizations";
+import registerVisualizations from "metabase/visualizations/register";
+import { createMockCard } from "metabase-types/api/mocks";
 
 registerVisualizations();
 
@@ -32,13 +32,13 @@ const DEFAULT_COLUMN_SETTINGS = {
 
 function MainSeries(settings, rows) {
   return {
-    card: {
+    card: createMockCard({
       display: "waterfall",
       visualization_settings: {
         ...DEFAULT_SETTINGS,
         ...settings,
       },
-    },
+    }),
     data: {
       cols: [
         StringColumn({

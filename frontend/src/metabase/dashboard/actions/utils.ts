@@ -1,21 +1,25 @@
+import { t } from "ttag";
 import _ from "underscore";
 
-import type { Draft } from "@reduxjs/toolkit";
-import type { DashboardState } from "metabase-types/store";
 import type {
+  DashCardId,
   Dashboard,
+  QuestionDashboardCard,
   DashboardId,
-  DashboardCard,
   DashboardTabId,
 } from "metabase-types/api";
+import type { StoreDashboard, StoreDashcard } from "metabase-types/store";
+
+import { isActionDashCard } from "../utils";
 
 export function getExistingDashCards(
-  dashboardState: Draft<DashboardState>,
+  dashboards: Record<DashboardId, StoreDashboard>,
+  dashcards: Record<DashCardId, StoreDashcard>,
   dashId: DashboardId,
-  tabId: DashboardTabId,
+  tabId: DashboardTabId | null = null,
 ) {
-  const { dashboards, dashcards } = dashboardState;
   const dashboard = dashboards[dashId];
+
   return dashboard.dashcards
     .map(id => dashcards[id])
     .filter(dc => {
@@ -45,8 +49,8 @@ export function hasDashboardChanged(
 // sometimes the cards objects change order but all the cards themselves are the same
 // this should not trigger a save
 export function haveDashboardCardsChanged(
-  newCards: DashboardCard[],
-  oldCards: DashboardCard[],
+  newCards: QuestionDashboardCard[],
+  oldCards: QuestionDashboardCard[],
 ) {
   return (
     !newCards.every(newCard =>
@@ -57,3 +61,27 @@ export function haveDashboardCardsChanged(
     )
   );
 }
+
+export const getDashCardMoveToTabUndoMessage = (dashCard: StoreDashcard) => {
+  const virtualCardType =
+    dashCard.visualization_settings?.virtual_card?.display;
+
+  if (isActionDashCard(dashCard)) {
+    return t`Action card moved`;
+  }
+
+  if (dashCard.card?.name) {
+    return t`Card moved: ${dashCard.card.name}`;
+  }
+
+  switch (virtualCardType) {
+    case "text":
+      return t`Text card moved`;
+    case "heading":
+      return t`Heading card moved`;
+    case "link":
+      return t`Link card moved`;
+    default:
+      return t`Card moved`;
+  }
+};

@@ -1,20 +1,18 @@
 import { useMemo } from "react";
 import { t } from "ttag";
 
-import PopoverWithTrigger from "metabase/components/PopoverWithTrigger";
 import { FieldPicker } from "metabase/common/components/FieldPicker";
 import { DataSourceSelector } from "metabase/query_builder/components/DataSelector";
-
-import type { TableId } from "metabase-types/api";
+import { Icon, Popover, Tooltip } from "metabase/ui";
 import * as Lib from "metabase-lib";
+import type { DatabaseId, TableId } from "metabase-types/api";
 
-import type { NotebookStepUiComponentProps } from "../../types";
 import { NotebookCell, NotebookCellItem } from "../../NotebookCell";
-import { FieldsPickerIcon, FIELDS_PICKER_STYLES } from "../../FieldsPickerIcon";
-import { DataStepCell } from "./DataStep.styled";
+import type { NotebookStepUiComponentProps } from "../../types";
+
+import { DataStepCell, DataStepIconButton } from "./DataStep.styled";
 
 export const DataStep = ({
-  topLevelQuery,
   query,
   step,
   readOnly,
@@ -23,55 +21,30 @@ export const DataStep = ({
 }: NotebookStepUiComponentProps) => {
   const { stageIndex } = step;
 
-  const question = query.question();
-  const metadata = question.metadata();
+  const question = step.question;
   const collectionId = question.collectionId();
-  const tableId = query.sourceTableId();
-
-  const databaseId = Lib.databaseID(topLevelQuery);
-  const table = tableId
-    ? Lib.tableOrCardMetadata(topLevelQuery, tableId)
-    : null;
+  const databaseId = Lib.databaseID(query);
+  const tableId = Lib.sourceTableOrCardId(query);
+  const table = tableId ? Lib.tableOrCardMetadata(query, tableId) : null;
 
   const pickerLabel = table
-    ? Lib.displayInfo(topLevelQuery, stageIndex, table).displayName
+    ? Lib.displayInfo(query, stageIndex, table).displayName
     : t`Pick your starting data`;
 
   const isRaw = useMemo(() => {
     return (
-      Lib.aggregations(topLevelQuery, stageIndex).length === 0 &&
-      Lib.breakouts(topLevelQuery, stageIndex).length === 0
+      Lib.aggregations(query, stageIndex).length === 0 &&
+      Lib.breakouts(query, stageIndex).length === 0
     );
-  }, [topLevelQuery, stageIndex]);
+  }, [query, stageIndex]);
 
   const canSelectTableColumns = table && isRaw && !readOnly;
 
-  const handleCreateQuery = (tableId: TableId) => {
-    const databaseId = metadata.table(tableId)?.db_id;
-    if (databaseId) {
-      const nextQuery = Lib.fromLegacyQuery(databaseId, metadata, {
-        type: "query",
-        database: databaseId,
-        query: {
-          "source-table": tableId,
-        },
-      });
-      updateQuery(nextQuery);
-    }
-  };
-
-  const handleChangeTable = (nextTableId: TableId) => {
-    const nextQuery = Lib.withDifferentTable(topLevelQuery, nextTableId);
-    updateQuery(nextQuery);
-  };
-
-  const handleTableSelect = (tableId: TableId) => {
-    const isNew = !databaseId;
-    if (isNew) {
-      handleCreateQuery(tableId);
-    } else {
-      handleChangeTable(tableId);
-    }
+  const handleTableSelect = (tableId: TableId, databaseId: DatabaseId) => {
+    const metadata = question.metadata();
+    const metadataProvider = Lib.metadataProvider(databaseId, metadata);
+    const nextTable = Lib.tableOrCardMetadata(metadataProvider, tableId);
+    updateQuery(Lib.queryFromTableOrCardMetadata(metadataProvider, nextTable));
   };
 
   return (
@@ -81,15 +54,15 @@ export const DataStep = ({
         inactive={!table}
         right={
           canSelectTableColumns && (
-            <DataFieldsPicker
-              query={topLevelQuery}
+            <DataFieldPopover
+              query={query}
               stageIndex={stageIndex}
               updateQuery={updateQuery}
             />
           )
         }
-        containerStyle={FIELDS_PICKER_STYLES.notebookItemContainer}
-        rightContainerStyle={FIELDS_PICKER_STYLES.notebookRightItemContainer}
+        containerStyle={{ padding: 0 }}
+        rightContainerStyle={{ width: 37, height: 37, padding: 0 }}
         data-testid="data-step-cell"
       >
         <DataSourceSelector
@@ -107,36 +80,67 @@ export const DataStep = ({
   );
 };
 
-interface DataFieldsPickerProps {
+interface DataFieldPopoverProps {
   query: Lib.Query;
   stageIndex: number;
   updateQuery: (query: Lib.Query) => Promise<void>;
 }
 
-export const DataFieldsPicker = ({
+function DataFieldPopover({
   query,
   stageIndex,
   updateQuery,
-}: DataFieldsPickerProps) => {
+}: DataFieldPopoverProps) {
+  return (
+    <Popover position="bottom-start">
+      <Popover.Target>
+        <Tooltip label={t`Pick columns`}>
+          <DataStepIconButton
+            aria-label={t`Pick columns`}
+            data-testid="fields-picker"
+          >
+            <Icon name="chevrondown" />
+          </DataStepIconButton>
+        </Tooltip>
+      </Popover.Target>
+      <Popover.Dropdown>
+        <DataFieldPicker
+          query={query}
+          stageIndex={stageIndex}
+          updateQuery={updateQuery}
+        />
+      </Popover.Dropdown>
+    </Popover>
+  );
+}
+
+interface DataFieldPickerProps {
+  query: Lib.Query;
+  stageIndex: number;
+  updateQuery: (query: Lib.Query) => Promise<void>;
+}
+
+function DataFieldPicker({
+  query,
+  stageIndex,
+  updateQuery,
+}: DataFieldPickerProps) {
   const columns = useMemo(
     () => Lib.fieldableColumns(query, stageIndex),
     [query, stageIndex],
   );
 
-  const handleToggle = (changedIndex: number, isSelected: boolean) => {
-    const nextColumns = columns.filter((_, currentIndex) => {
-      if (currentIndex === changedIndex) {
-        return isSelected;
-      }
-      const column = columns[currentIndex];
-      return Lib.displayInfo(query, stageIndex, column).selected;
-    });
-    const nextQuery = Lib.withFields(query, stageIndex, nextColumns);
+  const handleToggle = (column: Lib.ColumnMetadata, isSelected: boolean) => {
+    const nextQuery = isSelected
+      ? Lib.addField(query, stageIndex, column)
+      : Lib.removeField(query, stageIndex, column);
     updateQuery(nextQuery);
   };
 
-  const checkColumnSelected = (column: Lib.ColumnMetadata) =>
-    !!Lib.displayInfo(query, stageIndex, column).selected;
+  const isColumnSelected = (column: Lib.ColumnMetadata) => {
+    const columnInfo = Lib.displayInfo(query, stageIndex, column);
+    return Boolean(columnInfo.selected);
+  };
 
   const handleSelectAll = () => {
     const nextQuery = Lib.withFields(query, stageIndex, []);
@@ -149,19 +153,14 @@ export const DataFieldsPicker = ({
   };
 
   return (
-    <PopoverWithTrigger
-      triggerStyle={FIELDS_PICKER_STYLES.trigger}
-      triggerElement={FieldsPickerIcon}
-    >
-      <FieldPicker
-        query={query}
-        stageIndex={stageIndex}
-        columns={columns}
-        isColumnSelected={checkColumnSelected}
-        onToggle={handleToggle}
-        onSelectAll={handleSelectAll}
-        onSelectNone={handleSelectNone}
-      />
-    </PopoverWithTrigger>
+    <FieldPicker
+      query={query}
+      stageIndex={stageIndex}
+      columns={columns}
+      isColumnSelected={isColumnSelected}
+      onToggle={handleToggle}
+      onSelectAll={handleSelectAll}
+      onSelectNone={handleSelectNone}
+    />
   );
-};
+}

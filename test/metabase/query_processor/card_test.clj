@@ -11,7 +11,6 @@
    [metabase.query-processor.card :as qp.card]
    [metabase.test :as mt]
    [metabase.util :as u]
-   [schema.core :as s]
    [toucan2.tools.with-temp :as t2.with-temp]))
 
 (defn run-query-for-card
@@ -56,7 +55,9 @@
                      Card card {:database_id (u/the-id db)}]
         (is (= nil (:cache-ttl (#'qp.card/query-for-card card {} {} {} {:dashboard-id (u/the-id dash)}))))))))
 
-(defn- field-filter-query []
+(defn field-filter-query
+  "A query with a Field Filter parameter"
+  []
   {:database (mt/id)
    :type     :native
    :native   {:template-tags {"date" {:id           "_DATE_"
@@ -67,7 +68,9 @@
                                       :widget-type  :date/all-options}}
               :query         "SELECT count(*)\nFROM CHECKINS\nWHERE {{date}}"}})
 
-(defn- non-field-filter-query []
+(defn non-field-filter-query
+  "A query with a parameter that is not a Field Filter"
+  []
   {:database (mt/id)
    :type     :native
    :native   {:template-tags {"id"
@@ -79,6 +82,25 @@
                                :default      "1"}}
               :query         "SELECT *\nFROM ORDERS\nWHERE id = {{id}}"}})
 
+(defn non-parameter-template-tag-query
+  "A query with template tags that aren't parameters"
+  []
+  (assoc (non-field-filter-query)
+         "abcdef"
+         {:id           "abcdef"
+          :name         "#1234"
+          :display-name "#1234"
+          :type         :card
+          :card-id      1234}
+
+         "xyz"
+         {:id           "xyz"
+          :name         "snippet: My Snippet"
+          :display-name "Snippet: My Snippet"
+          :type         :snippet
+          :snippet-name "My Snippet"
+          :snippet-id   1}))
+
 (deftest card-template-tag-parameters-test
   (testing "Card with a Field filter parameter"
     (t2.with-temp/with-temp [Card {card-id :id} {:dataset_query (field-filter-query)}]
@@ -89,25 +111,11 @@
       (is (= {"id" :number}
              (#'qp.card/card-template-tag-parameters card-id)))))
   (testing "Should ignore native query snippets and source card IDs"
-    (t2.with-temp/with-temp [Card {card-id :id} {:dataset_query (assoc (non-field-filter-query)
-                                                                       "abcdef"
-                                                                       {:id           "abcdef"
-                                                                        :name         "#1234"
-                                                                        :display-name "#1234"
-                                                                        :type         :card
-                                                                        :card-id      1234}
-
-                                                                       "xyz"
-                                                                       {:id           "xyz"
-                                                                        :name         "snippet: My Snippet"
-                                                                        :display-name "Snippet: My Snippet"
-                                                                        :type         :snippet
-                                                                        :snippet-name "My Snippet"
-                                                                        :snippet-id   1})}]
+    (t2.with-temp/with-temp [Card {card-id :id} {:dataset_query (non-parameter-template-tag-query)}]
       (is (= {"id" :number}
              (#'qp.card/card-template-tag-parameters card-id))))))
 
-(deftest infer-parameter-name-test
+(deftest ^:parallel infer-parameter-name-test
   (is (= "my_param"
          (#'qp.card/infer-parameter-name {:name "my_param", :target [:variable [:template-tag :category]]})))
   (is (= "category"
@@ -126,15 +134,14 @@
                                                          :type  :date/single
                                                          :value "2016-01-01"}])))
       (testing "As an API request"
-        (is (schema= {:message            #"Invalid parameter: Card [\d,]+ does not have a template tag named \"fake\".+"
-                      :invalid-parameter  (s/eq {:id "_FAKE_", :name "fake", :type "date/single", :value "2016-01-01"})
-                      :allowed-parameters (s/eq ["date"])
-                      s/Keyword           s/Any}
-                     (mt/user-http-request :rasta :post (format "card/%d/query" card-id)
-                                           {:parameters [{:id    "_FAKE_"
-                                                          :name  "fake"
-                                                          :type  :date/single
-                                                          :value "2016-01-01"}]})))))
+        (is (=? {:message            #"Invalid parameter: Card [\d,]+ does not have a template tag named \"fake\".+"
+                 :invalid-parameter  {:id "_FAKE_", :name "fake", :type "date/single", :value "2016-01-01"}
+                 :allowed-parameters ["date"]}
+                (mt/user-http-request :rasta :post (format "card/%d/query" card-id)
+                                      {:parameters [{:id    "_FAKE_"
+                                                     :name  "fake"
+                                                     :type  :date/single
+                                                     :value "2016-01-01"}]})))))
 
     (testing "Should disallow parameters with types not allowed for the widget type"
       (letfn [(validate [param-type]

@@ -1,7 +1,12 @@
 import { onlyOn } from "@cypress/skip-test";
+
+import { USERS } from "e2e/support/cypress_data";
+import { ORDERS_DASHBOARD_ID } from "e2e/support/cypress_sample_instance_data";
 import {
   restore,
   popover,
+  openNavigationSidebar,
+  navigationSidebar,
   visitDashboard,
   modal,
   rightSidebar,
@@ -11,9 +16,6 @@ import {
   openDashboardMenu,
   toggleDashboardInfoSidebar,
 } from "e2e/support/helpers";
-
-import { USERS } from "e2e/support/cypress_data";
-import { ORDERS_DASHBOARD_ID } from "e2e/support/cypress_sample_instance_data";
 
 const PERMISSIONS = {
   curate: ["admin", "normal", "nodata"],
@@ -204,9 +206,8 @@ describe("managing dashboard from the dashboard's edit menu", () => {
                   .should("contain", newDashboardName)
                   .and("contain", newQuestionName);
 
-                cy.findByTestId("main-navbar-root")
-                  .findByText("Our analytics")
-                  .click();
+                openNavigationSidebar();
+                navigationSidebar().findByText("Our analytics").click();
                 cy.findAllByTestId("collection-entry-name")
                   .should("contain", dashboardName)
                   .and("contain", originalQuestionName);

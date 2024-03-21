@@ -2,6 +2,8 @@ import { useState } from "react";
 import { t } from "ttag";
 
 import AutocompleteInput from "metabase/core/components/AutocompleteInput";
+import { useSelector } from "metabase/lib/redux";
+import { getApplicationName } from "metabase/selectors/whitelabel";
 import type { Channel, ChannelSpec } from "metabase-types/api";
 
 const CHANNEL_FIELD_NAME = "channel";
@@ -57,6 +59,7 @@ const SlackChannelField = ({
     setHasPrivateChannelWarning(isPrivate);
   };
 
+  const applicationName = useSelector(getApplicationName);
   return (
     <div>
       <span className="block text-bold pb2">{channelField?.displayName}</span>
@@ -68,7 +71,7 @@ const SlackChannelField = ({
         onChange={handleChange}
       />
       {hasPrivateChannelWarning && (
-        <div className="mt1">{t`In order to send subscriptions and alerts to private Slack channels, you must first add the Metabase bot to them.`}</div>
+        <div className="mt1">{t`In order to send subscriptions and alerts to private Slack channels, you must first add the ${applicationName} bot to them.`}</div>
       )}
     </div>
   );

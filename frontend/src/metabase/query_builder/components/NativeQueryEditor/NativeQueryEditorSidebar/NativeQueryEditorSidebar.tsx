@@ -1,15 +1,14 @@
 import { t } from "ttag";
 
-import { isMac } from "metabase/lib/browser";
-
 import Tooltip from "metabase/core/components/Tooltip";
+import { isMac } from "metabase/lib/browser";
+import { canFormatForEngine } from "metabase/query_builder/components/NativeQueryEditor/utils";
 import { DataReferenceButton } from "metabase/query_builder/components/view/DataReferenceButton";
 import { NativeVariablesButton } from "metabase/query_builder/components/view/NativeVariablesButton";
-import { SnippetSidebarButton } from "metabase/query_builder/components/view/SnippetSidebarButton";
 import { PreviewQueryButton } from "metabase/query_builder/components/view/PreviewQueryButton";
-
-import type { Collection, NativeQuerySnippet } from "metabase-types/api";
+import { SnippetSidebarButton } from "metabase/query_builder/components/view/SnippetSidebarButton";
 import type Question from "metabase-lib/Question";
+import type { Collection, NativeQuerySnippet } from "metabase-types/api";
 
 import {
   Container,
@@ -47,6 +46,7 @@ interface NativeQueryEditorSidebarProps {
   toggleDataReference: () => void;
   toggleTemplateTagsEditor: () => void;
   toggleSnippetSidebar: () => void;
+  onFormatQuery: () => void;
 }
 
 export const NativeQueryEditorSidebar = (
@@ -66,6 +66,7 @@ export const NativeQueryEditorSidebar = (
     features,
     onShowPromptInput,
     canUsePromptInput,
+    onFormatQuery,
   } = props;
 
   // hide the snippet sidebar if there aren't any visible snippets/collections
@@ -88,8 +89,22 @@ export const NativeQueryEditorSidebar = (
 
   const canRunQuery = runQuery && cancelQuery;
 
+  const engine = question.database?.()?.engine;
+  const canFormatQuery = engine != null && canFormatForEngine(engine);
+
   return (
     <Container data-testid="native-query-editor-sidebar">
+      {canFormatQuery && (
+        <Tooltip tooltip={t`Format query`}>
+          <SidebarButton
+            aria-label={t`Format query`}
+            onClick={onFormatQuery}
+            icon="document"
+            iconSize={20}
+            onlyIcon
+          />
+        </Tooltip>
+      )}
       {canUsePromptInput && features.promptInput && !isPromptInputVisible ? (
         <Tooltip tooltip={t`Ask a question`}>
           <SidebarButton

@@ -1,5 +1,5 @@
 import _ from "underscore";
-import { snapshot, restore, withSampleDatabase } from "e2e/support/helpers";
+
 import {
   USERS,
   USER_GROUPS,
@@ -7,6 +7,7 @@ import {
   SAMPLE_DB_TABLES,
   METABASE_SECRET_KEY,
 } from "e2e/support/cypress_data";
+import { snapshot, restore, withSampleDatabase } from "e2e/support/helpers";
 
 const {
   STATIC_ORDERS_ID,
@@ -214,7 +215,7 @@ describe("snapshots", () => {
     cy.createQuestion({
       name: "Orders Model",
       query: { "source-table": ORDERS_ID },
-      dataset: true,
+      type: "model",
     });
   }
 
@@ -305,6 +306,10 @@ function getDefaultInstanceData() {
 
   cy.request("/api/database").then(({ body: { data: databases } }) => {
     instanceData.databases = databases;
+  });
+
+  cy.request("/api/permissions/group").then(({ body: groups }) => {
+    instanceData.groups = groups;
   });
 
   cy.request("/api/collection").then(({ body: collections }) => {

@@ -1,3 +1,8 @@
+import { USERS } from "e2e/support/cypress_data";
+import {
+  ADMIN_PERSONAL_COLLECTION_ID,
+  ORDERS_DASHBOARD_ID,
+} from "e2e/support/cypress_sample_instance_data";
 import {
   popover,
   restore,
@@ -5,6 +10,7 @@ import {
   modal,
   dashboardHeader,
   navigationSidebar,
+  openNavigationSidebar,
   describeWithSnowplow,
   expectGoodSnowplowEvent,
   expectNoBadSnowplowEvents,
@@ -12,11 +18,6 @@ import {
   enableTracking,
   main,
 } from "e2e/support/helpers";
-import { USERS } from "e2e/support/cypress_data";
-import {
-  ADMIN_PERSONAL_COLLECTION_ID,
-  ORDERS_DASHBOARD_ID,
-} from "e2e/support/cypress_sample_instance_data";
 
 const { admin } = USERS;
 
@@ -289,6 +290,32 @@ describe("scenarios > home > custom homepage", () => {
       });
     });
 
+    it("should not flash the homescreen before redirecting (#37089)", () => {
+      cy.intercept(
+        {
+          url: `/api/dashboard/${ORDERS_DASHBOARD_ID}`,
+          method: "GET",
+          middleware: true,
+        },
+        req => {
+          req.continue(res => {
+            res.delay = 1000;
+            res.send();
+          });
+        },
+      );
+
+      cy.visit("/");
+      cy.findByRole("heading", { name: "Loading..." }).should("exist");
+      cy.findByRole("heading", { name: "Loading...", timeout: 5000 }).should(
+        "not.exist",
+      );
+
+      //Ensure that when the loading header is gone, we are no longer on the home page
+      cy.findByTestId("home-page", { timeout: 0 }).should("not.exist");
+      cy.url().should("include", "/dashboard/");
+    });
+
     it("should redirect you if you do not have permissions for set dashboard", () => {
       cy.signIn("nocollection");
       cy.visit("/");
@@ -354,6 +381,7 @@ describe("scenarios > home > custom homepage", () => {
       });
 
       // Navigate to home
+      openNavigationSidebar();
       navigationSidebar().within(() => {
         cy.findByText("Home").click();
       });

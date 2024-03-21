@@ -32,11 +32,13 @@
   - not exported in serialization; or
   - exported as a child of something else (eg. timeline_event under timeline)
   so they don't need a generated entity_id."
-  #{:model/HTTPAction
+  #{:model/ApiKey
+    :model/HTTPAction
     :model/ImplicitAction
     :model/QueryAction
     :model/Activity
     :model/ApplicationPermissionsRevision
+    :model/AuditLog
     :model/BookmarkOrdering
     :model/CardBookmark
     :model/CollectionBookmark
@@ -61,6 +63,7 @@
     :model/Query
     :model/QueryCache
     :model/QueryExecution
+    :model/RecentViews
     :model/Revision
     :model/Secret
     :model/Session

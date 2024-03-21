@@ -1,3 +1,4 @@
+import { USERS } from "e2e/support/cypress_data";
 import {
   restore,
   modal,
@@ -6,7 +7,6 @@ import {
   getFullName,
   setTokenFeatures,
 } from "e2e/support/helpers";
-import { USERS } from "e2e/support/cypress_data";
 
 const { normal, nocollection } = USERS;
 
@@ -170,7 +170,7 @@ describeEE("scenarios > admin > people", () => {
   });
 
   it("after removing the last group redirects to the home page", () => {
-    cy.findByTextEnsureVisible("Groups").click();
+    cy.findByTestId("admin-left-nav-pane").findByText("Groups").click();
 
     removeFirstGroup();
     cy.url().should("match", /\/admin\/people\/groups$/);
@@ -192,5 +192,5 @@ function confirmLosingAbilityToManageGroup() {
 function removeFirstGroup() {
   cy.icon("ellipsis").eq(0).click();
   cy.findByText("Remove Group").click();
-  cy.button("Yes").click();
+  cy.button("Remove group").click();
 }

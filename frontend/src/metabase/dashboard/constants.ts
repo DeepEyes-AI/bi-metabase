@@ -16,11 +16,12 @@ export const SIDEBAR_NAME: Record<DashboardSidebarName, DashboardSidebarName> =
 export const INITIAL_DASHBOARD_STATE: DashboardState = {
   dashboardId: null,
   selectedTabId: null,
-  isEditing: null,
+  editingDashboard: null,
   dashboards: {},
   dashcards: {},
   dashcardData: {},
   parameterValues: {},
+  draftParameterValues: {},
   loadingDashCards: {
     loadingIds: [],
     loadingStatus: "idle" as const,
@@ -41,3 +42,6 @@ export const INITIAL_DASHBOARD_STATE: DashboardState = {
 };
 
 export const DASHBOARD_SLOW_TIMEOUT = 15 * 1000;
+
+export const DASHBOARD_PDF_EXPORT_ROOT_ID =
+  "Dashboard-Parameters-And-Cards-Container";

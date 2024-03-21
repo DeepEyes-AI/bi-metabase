@@ -229,7 +229,26 @@
                   :display-name             "Count"
                   :base-type                :type/Integer
                   :lib/source               :source/card
-                  :lib/desired-column-alias "count"}]
+                  :lib/desired-column-alias "count"}
+                 ;; Implicitly joinable columns
+                 {:name                     "ID"
+                  :display-name             "ID"
+                  :base-type                :type/BigInteger
+                  :lib/source               :source/implicitly-joinable
+                  :lib/desired-column-alias "USERS__via__USER_ID__ID"
+                  :fk-field-id              (meta/id :checkins :user-id)}
+                 {:name                     "NAME"
+                  :display-name             "Name"
+                  :base-type                :type/Text
+                  :lib/source               :source/implicitly-joinable
+                  :lib/desired-column-alias "USERS__via__USER_ID__NAME"
+                  :fk-field-id              (meta/id :checkins :user-id)}
+                 {:name                     "LAST_LOGIN"
+                  :display-name             "Last Login"
+                  :base-type                :type/DateTime
+                  :lib/source               :source/implicitly-joinable
+                  :lib/desired-column-alias "USERS__via__USER_ID__LAST_LOGIN"
+                  :fk-field-id              (meta/id :checkins :user-id)}]
                 columns))
         (testing `lib/display-info
           (is (=? [{:name                   "USER_ID"
@@ -241,7 +260,32 @@
                     :display-name           "Count"
                     :table                  {:name "My Card", :display-name "My Card"}
                     :is-from-previous-stage false
-                    :is-implicitly-joinable false}]
+                    :is-implicitly-joinable false}
+                   ;; Implicitly joinable columns
+                   {:name                   "ID"
+                    :display-name           "ID"
+                    :long-display-name      "User → ID"
+                    :table                  {:name            "USERS"
+                                             :display-name    "Users"
+                                             :is-source-table false}
+                    :is-from-previous-stage false
+                    :is-implicitly-joinable true}
+                   {:name                   "NAME"
+                    :display-name           "Name"
+                    :long-display-name      "User → Name"
+                    :table                  {:name            "USERS"
+                                             :display-name    "Users"
+                                             :is-source-table false}
+                    :is-from-previous-stage false
+                    :is-implicitly-joinable true}
+                   {:name                   "LAST_LOGIN"
+                    :display-name           "Last Login"
+                    :long-display-name      "User → Last Login"
+                    :table                  {:name            "USERS"
+                                             :display-name    "Users"
+                                             :is-source-table false}
+                    :is-from-previous-stage false
+                    :is-implicitly-joinable true}]
                   (for [col columns]
                     (lib/display-info query col)))))))))
 
@@ -429,9 +473,10 @@
              {:name "expr", :display-name "expr", :lib/source :source/previous-stage}]
             (lib/breakoutable-columns query)))
     (let [expr (m/find-first #(= (:name %) "expr") (lib/breakoutable-columns query))]
-      (is (=? {:lib/type   :metadata/column
-               :lib/source :source/previous-stage
-               :name       "expr"}
+      (is (=? {:lib/type            :metadata/column
+               :lib/source          :source/previous-stage
+               :name                "expr"
+               :lib/expression-name (symbol "nil #_\"key is not present.\"")}
               expr))
       (let [query' (lib/breakout query expr)]
         (is (=? {:stages [{:lib/type :mbql.stage/mbql, :source-table (meta/id :venues)}
@@ -558,3 +603,17 @@
       (is (=? {:stages [{:aggregation [[:count {}]]
                          :breakout    [[:field {} (meta/id :people :longitude)]]}]}
               (lib.breakout/remove-existing-breakouts-for-column query' (meta/field-metadata :people :latitude)))))))
+
+(deftest ^:parallel breakout-column-test
+  (let [query      (-> lib.tu/venues-query
+                       (lib/breakout  (meta/field-metadata :venues :category-id))
+                       (lib/breakout  (meta/field-metadata :venues :price))
+                       (lib/aggregate (lib/count)))
+        category   (m/find-first #(= (:name %) "CATEGORY_ID") (lib/visible-columns query))
+        price      (m/find-first #(= (:name %) "PRICE") (lib/visible-columns query))
+        breakouts  (lib/breakouts query)]
+    (is (= (count breakouts) 2))
+    (is (=? category
+            (lib.breakout/breakout-column query -1 (first breakouts))))
+    (is (=? price
+            (lib.breakout/breakout-column query -1 (second breakouts))))))

@@ -1,7 +1,9 @@
 import userEvent from "@testing-library/user-event";
+
 import { render, screen, waitFor } from "__support__/ui";
 import * as Lib from "metabase-lib";
 import { createQuery, columnFinder } from "metabase-lib/test-helpers";
+
 import {
   BucketPickerPopover,
   INITIALLY_VISIBLE_ITEMS_COUNT,
@@ -62,7 +64,9 @@ describe("BucketPickerPopover", () => {
 
     userEvent.click(screen.getByRole("button", { name: "More…" }));
 
-    expect(screen.getAllByRole("menuitem")).toHaveLength(buckets.length);
+    expect(screen.getAllByRole("menuitem")).toHaveLength(
+      [...buckets, "Don't bin"].length,
+    );
   });
 
   it("shouldn't show the More button if there are a few buckets", async () => {
@@ -81,7 +85,9 @@ describe("BucketPickerPopover", () => {
     const column = Lib.withTemporalBucket(dateColumn, lastBucket);
     await setupTemporalBucketPicker({ column });
 
-    expect(screen.getAllByRole("menuitem")).toHaveLength(buckets.length);
+    expect(screen.getAllByRole("menuitem")).toHaveLength(
+      [...buckets, "Don't bin"].length,
+    );
     expect(screen.queryByText("More…")).not.toBeInTheDocument();
   });
 
@@ -116,6 +122,8 @@ describe("BucketPickerPopover", () => {
     userEvent.click(screen.getByLabelText("Temporal bucket"));
     await screen.findByText("Month");
 
-    expect(screen.getAllByRole("menuitem")).toHaveLength(buckets.length);
+    expect(screen.getAllByRole("menuitem")).toHaveLength(
+      [...buckets, "Don't bin"].length,
+    );
   });
 });

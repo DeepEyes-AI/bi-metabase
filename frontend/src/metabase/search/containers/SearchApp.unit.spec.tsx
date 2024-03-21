@@ -1,12 +1,5 @@
 import userEvent from "@testing-library/user-event";
-import {
-  renderWithProviders,
-  screen,
-  waitForLoaderToBeRemoved,
-  within,
-} from "__support__/ui";
-import SearchApp from "metabase/search/containers/SearchApp";
-import { Route } from "metabase/hoc/Title";
+
 import {
   setupCollectionByIdEndpoint,
   setupDatabasesEndpoints,
@@ -15,16 +8,23 @@ import {
   setupUserRecipientsEndpoint,
 } from "__support__/server-mocks";
 import {
+  renderWithProviders,
+  screen,
+  waitForLoaderToBeRemoved,
+  within,
+} from "__support__/ui";
+import { Route } from "metabase/hoc/Title";
+import { checkNotNull } from "metabase/lib/types";
+import SearchApp from "metabase/search/containers/SearchApp";
+import type { SearchFilters } from "metabase/search/types";
+import type { EnabledSearchModelType, SearchResult } from "metabase-types/api";
+import {
   createMockCollection,
   createMockDatabase,
   createMockSearchResult,
   createMockTable,
   createMockUserListResult,
 } from "metabase-types/api/mocks";
-import type { EnabledSearchModelType, SearchResult } from "metabase-types/api";
-
-import type { SearchFilters } from "metabase/search/types";
-import { checkNotNull } from "metabase/lib/types";
 
 // Mock PAGE_SIZE so we don't have to generate a ton of elements for the pagination test
 jest.mock("metabase/search/containers/constants", () => ({
@@ -164,7 +164,7 @@ describe("SearchApp", () => {
   describe("filtering search results with the sidebar", () => {
     it.each(TEST_SEARCH_RESULTS)(
       "should reload with filtered searches when type=$model is changed in the dropdown sidebar filter",
-      async ({ model, name }) => {
+      async ({ model }) => {
         const { history } = await setup({
           searchText: "Test",
         });

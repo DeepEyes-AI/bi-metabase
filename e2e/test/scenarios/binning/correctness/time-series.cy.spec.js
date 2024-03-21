@@ -1,3 +1,4 @@
+import { SAMPLE_DATABASE } from "e2e/support/cypress_sample_database";
 import {
   restore,
   popover,
@@ -6,7 +7,6 @@ import {
   rightSidebar,
 } from "e2e/support/helpers";
 
-import { SAMPLE_DATABASE } from "e2e/support/cypress_sample_database";
 import { TIME_OPTIONS } from "./shared/constants";
 
 const { ORDERS_ID } = SAMPLE_DATABASE;
@@ -89,12 +89,10 @@ function assertOnTableValues(values) {
 }
 
 function assertOnTimeSeriesFooter(str) {
-  cy.findAllByTestId("select-button-content")
-    .first()
+  cy.findByTestId("timeseries-filter-button")
     .invoke("text")
-    .should("eq", "All Time");
-  cy.findAllByTestId("select-button-content")
-    .last()
+    .should("eq", "All time");
+  cy.findByTestId("timeseries-bucket-button")
     .invoke("text")
     .should("contain", str);
 }

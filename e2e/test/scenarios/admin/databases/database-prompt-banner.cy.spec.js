@@ -1,3 +1,4 @@
+import { ORDERS_DASHBOARD_ID } from "e2e/support/cypress_sample_instance_data";
 import {
   appBar,
   describeWithSnowplow,
@@ -11,8 +12,6 @@ import {
   describeEE,
   setTokenFeatures,
 } from "e2e/support/helpers";
-
-import { ORDERS_DASHBOARD_ID } from "e2e/support/cypress_sample_instance_data";
 
 describeEE("database prompt banner", () => {
   beforeEach(() => {
@@ -34,7 +33,10 @@ describeEE("database prompt banner", () => {
 
         cy.findByRole("link", { name: "Get help connecting" })
           .should("have.attr", "href")
-          .and("eq", "https://metabase.com/help/connect");
+          .and(
+            "eq",
+            "https://metabase.com/help/connect?email=admin%40metabase.test&site_url=http%3A%2F%2Flocalhost%3A4000",
+          );
 
         cy.findByRole("link", { name: "Connect your database" }).click();
         cy.url().should("include", "/admin/databases/create");

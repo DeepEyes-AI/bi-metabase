@@ -44,6 +44,10 @@ You'll also need to specify your:
 - **From address**: The email address you want to use for the sender of emails.
 - **Reply-to address**: The email address you want the replies to go to, if different from the from address.
 
+## Add recipients as CC or BCC
+
+By default, Metabase will hide email recipients by including them in the BCC list (Blind Carbon Copy) of the email. But if you're having issues with your email provider blocking emails with BCC recipients, and you don't mind having people see who else has been copied on the email Metabase sends them, you can tell Metabase to CC (Carbon Copy) recipients instead.
+
 ### Recommended email settings
 
 - SSL is strongly recommended because it’s more secure and gives your account extra protection from threats.
@@ -100,7 +104,7 @@ You can also set this property using the environment variable [`MB_SUBSCRIPTION_
 
 ## Suggest recipients on dashboard subscriptions and alerts
 
-{% include plans-blockquote.html feature="Approved domains for notifications" %}
+{% include plans-blockquote.html feature="Configuring suggested recipients" %}
 
 Control which recipients people can see when they create a new [dashboard subscription](../dashboards/subscriptions.md) or [alert](../questions/sharing/alerts.md). For example, you may want to restrict people to viewing potential recipients that belong to the same [groups](../people-and-groups/managing.md#groups) they are a member of.
 

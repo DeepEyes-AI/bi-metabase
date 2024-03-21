@@ -52,13 +52,13 @@
 ;; at a time.
 (let [f        (fn []
                  {:post [(integer? %)]}
-                 (log/info (u/colorize :yellow "GETTING ACTIVE USER COUNT!"))
+                 (log/debug (u/colorize :yellow "GETTING ACTIVE USER COUNT!"))
                  (assert ((requiring-resolve 'metabase.db/db-is-set-up?)) "Metabase DB is not yet set up")
                  ;; force this to use a new Connection, it seems to be getting called in situations where the Connection
                  ;; is from a different thread and is invalid by the time we get to use it
                  (let [result (binding [t2.conn/*current-connectable* nil]
-                                (t2/count :core_user :is_active true))]
-                   (log/info (u/colorize :green "=>") result)
+                                (t2/count :model/User :is_active true :type :personal))]
+                   (log/debug (u/colorize :green "=>") result)
                    result))
       memoized (memoize/ttl
                 f
@@ -74,6 +74,7 @@
   (deferred-tru "Cached number of active users. Refresh every 5 minutes.")
   :visibility :admin
   :type       :integer
+  :audit      :never
   :default    0
   :getter     (fn []
                 (if-not ((requiring-resolve 'metabase.db/db-is-set-up?))
@@ -95,14 +96,27 @@
    [:trial         {:optional true} :boolean]
    [:valid-thru    {:optional true} ms/NonBlankString]]) ; ISO 8601 timestamp
 
-(defn- fetch-token-and-parse-body
-  [token base-url]
+
+(defn- fetch-token-and-parse-body*
+  [token base-url site-uuid]
   (some-> (token-status-url token base-url)
           (http/get {:query-params {:users      (cached-active-users-count)
-                                    :site-uuid  (setting/get :site-uuid-for-premium-features-token-checks)
+                                    :site-uuid  site-uuid
                                     :mb-version (:tag config/mb-version-info)}})
           :body
           (json/parse-string keyword)))
+
+(defn- fetch-token-and-parse-body
+  [token base-url site-uuid]
+  (let [fut    (future (fetch-token-and-parse-body* token base-url site-uuid))
+        result (deref fut fetch-token-status-timeout-ms ::timed-out)]
+    (if (not= result ::timed-out)
+      result
+      (do
+        (future-cancel fut)
+        {:valid         false
+         :status        (tru "Unable to validate token")
+         :error-details (tru "Token validation timed out.")}))))
 
 (mu/defn ^:private fetch-token-status* :- TokenStatus
   "Fetch info about the validity of `token` from the MetaStore."
@@ -112,6 +126,7 @@
   (log/infof "Checking with the MetaStore to see whether token '%s' is valid..." (u.str/mask token))
   (if (mc/validate ValidToken token)
     (do
+<<<<<<< HEAD
       {:valid         true
        :status        "Activate"
        :features ["audit-app", "advanced-permissions", "embedding", "cache-granular-controls", "sso-google", "sso-jwt", "disable-password-login", "dashboard-subscription-filters", "official-collections", "snippet-collections", "serialization", "email-restrict-recipients"]
@@ -142,6 +157,35 @@
            :status        (tru "Unable to validate token")
            :error-details (tru "Token validation timed out.")})
         result))))
+=======
+      (log/error (u/format-color 'red "Invalid token format!"))
+      {:valid         false
+       :status        "invalid"
+       :error-details (trs "Token should be 64 hexadecimal characters.")})
+    ;; NB that we fetch any settings from this thread, not inside on of the futures in the inner fetch calls.
+    ;; We will have taken a lock to call through to here, and could create a deadlock with the future's thread.
+    ;; See https://github.com/metabase/metabase/pull/38029/
+    (let [site-uuid (setting/get :site-uuid-for-premium-features-token-checks)]
+      (try (fetch-token-and-parse-body token token-check-url site-uuid)
+           (catch Exception e1
+             ;; Unwrap exception from inside the future
+             (let [e1 (ex-cause e1)]
+               (log/error e1 (trs "Error fetching token status from {0}:" token-check-url))
+               ;; Try the fallback URL, which was the default URL prior to 45.2
+               (try (fetch-token-and-parse-body token store-url site-uuid)
+                    ;; if there was an error fetching the token from both the normal and fallback URLs, log the
+                    ;; first error and return a generic message about the token being invalid. This message
+                    ;; will get displayed in the Settings page in the admin panel so we do not want something
+                    ;; complicated
+                    (catch Exception e2
+                      (log/error (ex-cause e2) (trs "Error fetching token status from {0}:" store-url))
+                      (let [body (u/ignore-exceptions (some-> (ex-data e1) :body (json/parse-string keyword)))]
+                        (or
+                          body
+                          {:valid         false
+                           :status        (tru "Unable to validate token")
+                           :error-details (.getMessage e1)}))))))))))
+>>>>>>> v1.49.0
 
 (def ^{:arglists '([token])} fetch-token-status
   "TTL-memoized version of `fetch-token-status*`. Caches API responses for 5 minutes. This is important to avoid making
@@ -193,6 +237,7 @@
   (deferred-tru "Cached token status for premium features. This is to avoid an API request on the the first page load.")
   :visibility :admin
   :type       :json
+  :audit      :never
   :setter     :none
   :getter     (fn [] (some-> (premium-embedding-token) (fetch-token-status))))
 
@@ -202,6 +247,7 @@
 
 (defsetting premium-embedding-token     ; TODO - rename this to premium-features-token?
   (deferred-tru "Token for premium features. Go to the MetaStore to get yours!")
+  :audit :never
   :setter
   (fn [new-value]
     ;; validate the new value if we're not unsetting it
@@ -226,7 +272,7 @@
                        (log/debug e (trs "Error validating token")))
                      ;; log every five minutes
                      :ttl/threshold (* 1000 60 5))]
-  (mu/defn token-features :- [:set ms/NonBlankString]
+  (mu/defn ^:dynamic *token-features* :- [:set ms/NonBlankString]
     "Get the features associated with the system's premium features token."
     []
     (try
@@ -236,10 +282,10 @@
         (cached-logger (premium-embedding-token) e)
         #{}))))
 
-(defn- has-any-features?
+(defn has-any-features?
   "True if we have a valid premium features token with ANY features."
   []
-  (boolean (seq (token-features))))
+  (boolean (seq (*token-features*))))
 
 (defn has-feature?
   "Does this instance's premium token have `feature`?
@@ -247,7 +293,7 @@
     (has-feature? :sandboxes)          ; -> true
     (has-feature? :toucan-management)  ; -> false"
   [feature]
-  (contains? (token-features) (name feature)))
+  (contains? (*token-features*) (name feature)))
 
 (defn ee-feature-error
   "Returns an error that can be used to throw when an enterprise feature check fails."
@@ -289,6 +335,7 @@
   (let [options (merge {:type       :boolean
                         :visibility :public
                         :setter     :none
+                        :audit      :never
                         :getter     `(default-premium-feature-getter ~(some-> feature name))}
                        options)]
     `(do
@@ -301,13 +348,15 @@
   "Logo Removal and Full App Embedding. Should we hide the 'Powered by Metabase' attribution on the embedding pages?
    `true` if we have a valid premium embedding token."
   :embedding
+  :export? true
   ;; This specific feature DOES NOT require the EE code to be present in order for it to return truthy, unlike
   ;; everything else.
   :getter #(has-feature? :embedding))
 
 (define-premium-feature enable-whitelabeling?
   "Should we allow full whitelabel embedding (reskinning the entire interface?)"
-  :whitelabel)
+  :whitelabel
+  :export? true)
 
 (define-premium-feature enable-audit-app?
   "Should we enable the Audit Logs interface in the Admin UI?"
@@ -327,7 +376,8 @@
 
 (define-premium-feature enable-sandboxes?
   "Should we enable data sandboxes (row-level permissions)?"
-  :sandboxes)
+  :sandboxes
+  :export? true)
 
 (define-premium-feature enable-sso-jwt?
   "Should we enable JWT-based authentication?"
@@ -395,14 +445,15 @@
   :type       :boolean
   :visibility :public
   :setter     :none
-  :getter     (fn [] (boolean ((token-features) "hosting")))
+  :audit      :never
+  :getter     (fn [] (boolean ((*token-features*) "hosting")))
   :doc        false)
 
 ;; `enhancements` are not currently a specific "feature" that EE tokens can have or not have. Instead, it's a
 ;; catch-all term for various bits of EE functionality that we assume all EE licenses include. (This may change in the
 ;; future.)
 ;;
-;; By checking whether `(token-features)` is non-empty we can see whether we have a valid EE token. If the token is
+;; By checking whether `(*token-features*)` is non-empty we can see whether we have a valid EE token. If the token is
 ;; valid, we can enable EE enhancements.
 ;;
 ;; DEPRECATED -- it should now be possible to use the new 0.41.0+ features for everything previously covered by

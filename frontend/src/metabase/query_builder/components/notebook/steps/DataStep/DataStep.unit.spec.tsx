@@ -1,22 +1,24 @@
 import userEvent from "@testing-library/user-event";
-import { renderWithProviders, screen } from "__support__/ui";
-import {
-  createSampleDatabase,
-  SAMPLE_DB_ID,
-} from "metabase-types/api/mocks/presets";
+
 import {
   setupDatabasesEndpoints,
   setupSearchEndpoints,
 } from "__support__/server-mocks";
+import { renderWithProviders, screen } from "__support__/ui";
 import * as Lib from "metabase-lib";
 import Question from "metabase-lib/Question";
-import type StructuredQuery from "metabase-lib/queries/StructuredQuery";
 import {
   columnFinder,
   createQuery,
   findAggregationOperator,
 } from "metabase-lib/test-helpers";
+import {
+  createSampleDatabase,
+  SAMPLE_DB_ID,
+} from "metabase-types/api/mocks/presets";
+
 import { createMockNotebookStep } from "../../test-utils";
+
 import { DataStep } from "./DataStep";
 
 const createQueryWithFields = (columnNames: string[]) => {
@@ -52,8 +54,8 @@ const setup = async (
   renderWithProviders(
     <DataStep
       step={step}
-      topLevelQuery={step.topLevelQuery}
       query={step.query}
+      stageIndex={step.stageIndex}
       readOnly={readOnly}
       color="brand"
       isLastOpened={false}
@@ -88,11 +90,8 @@ const setup = async (
 
 const setupEmptyQuery = () => {
   const question = Question.create({ databaseId: SAMPLE_DB_ID });
-  const legacyQuery = question.query() as StructuredQuery;
-  const query = question._getMLv2Query();
-  return setup(
-    createMockNotebookStep({ query: legacyQuery, topLevelQuery: query }),
-  );
+  const query = question.query();
+  return setup(createMockNotebookStep({ query }));
 };
 
 describe("DataStep", () => {
@@ -135,7 +134,7 @@ describe("DataStep", () => {
       await setup();
       userEvent.click(screen.getByLabelText("Pick columns"));
 
-      expect(screen.getByLabelText("Select none")).toBeChecked();
+      expect(await screen.findByLabelText("Select none")).toBeChecked();
       expect(screen.getByLabelText("ID")).toBeChecked();
       expect(screen.getByLabelText("ID")).toBeEnabled();
       expect(screen.getByLabelText("Tax")).toBeChecked();
@@ -144,10 +143,10 @@ describe("DataStep", () => {
 
     it("should render with a single column selected", async () => {
       const query = createQueryWithFields(["ID"]);
-      await setup(createMockNotebookStep({ topLevelQuery: query }));
+      await setup(createMockNotebookStep({ query }));
       userEvent.click(screen.getByLabelText("Pick columns"));
 
-      expect(screen.getByLabelText("Select all")).not.toBeChecked();
+      expect(await screen.findByLabelText("Select all")).not.toBeChecked();
       expect(screen.getByLabelText("ID")).toBeChecked();
       expect(screen.getByLabelText("ID")).toBeDisabled();
       expect(screen.getByLabelText("Tax")).not.toBeChecked();
@@ -156,10 +155,10 @@ describe("DataStep", () => {
 
     it("should render with multiple columns selected", async () => {
       const query = createQueryWithFields(["ID", "TOTAL"]);
-      await setup(createMockNotebookStep({ topLevelQuery: query }));
+      await setup(createMockNotebookStep({ query }));
       userEvent.click(screen.getByLabelText("Pick columns"));
 
-      expect(screen.getByLabelText("Select all")).not.toBeChecked();
+      expect(await screen.findByLabelText("Select all")).not.toBeChecked();
       expect(screen.getByLabelText("ID")).toBeChecked();
       expect(screen.getByLabelText("ID")).toBeEnabled();
       expect(screen.getByLabelText("Tax")).not.toBeChecked();
@@ -170,11 +169,11 @@ describe("DataStep", () => {
 
     it("should allow selecting a column", async () => {
       const query = createQueryWithFields(["ID"]);
-      const step = createMockNotebookStep({ topLevelQuery: query });
+      const step = createMockNotebookStep({ query });
       const { getNextColumn } = await setup(step);
 
       userEvent.click(screen.getByLabelText("Pick columns"));
-      userEvent.click(screen.getByLabelText("Tax"));
+      userEvent.click(await screen.findByLabelText("Tax"));
 
       expect(getNextColumn("ID").selected).toBeTruthy();
       expect(getNextColumn("TAX").selected).toBeTruthy();
@@ -185,7 +184,7 @@ describe("DataStep", () => {
       const { getNextColumn } = await setup();
 
       userEvent.click(screen.getByLabelText("Pick columns"));
-      userEvent.click(screen.getByLabelText("Tax"));
+      userEvent.click(await screen.findByLabelText("Tax"));
 
       expect(getNextColumn("ID").selected).toBeTruthy();
       expect(getNextColumn("TAX").selected).toBeFalsy();
@@ -194,11 +193,11 @@ describe("DataStep", () => {
 
     it("should allow selecting all columns", async () => {
       const query = createQueryWithFields(["ID"]);
-      const step = createMockNotebookStep({ topLevelQuery: query });
+      const step = createMockNotebookStep({ query });
       const { getNextColumn } = await setup(step);
 
       userEvent.click(screen.getByLabelText("Pick columns"));
-      userEvent.click(screen.getByLabelText("Select all"));
+      userEvent.click(await screen.findByLabelText("Select all"));
 
       expect(getNextColumn("ID").selected).toBeTruthy();
       expect(getNextColumn("TAX").selected).toBeTruthy();
@@ -209,7 +208,7 @@ describe("DataStep", () => {
       const { getNextQuery } = await setup();
 
       userEvent.click(screen.getByLabelText("Pick columns"));
-      userEvent.click(screen.getByLabelText("Select none"));
+      userEvent.click(await screen.findByLabelText("Select none"));
 
       const nextQuery = getNextQuery();
       expect(Lib.fields(nextQuery, 0)).toHaveLength(1);
@@ -226,16 +225,16 @@ describe("DataStep", () => {
     });
 
     it("should not display fields picker if a query has aggregations", () => {
-      const topLevelQuery = createQueryWithAggregation();
-      const step = createMockNotebookStep({ topLevelQuery });
+      const query = createQueryWithAggregation();
+      const step = createMockNotebookStep({ query });
       setup(step);
 
       expect(screen.queryByLabelText("Pick columns")).not.toBeInTheDocument();
     });
 
     it("should not display fields picker if a query has breakouts", () => {
-      const topLevelQuery = createQueryWithBreakout();
-      const step = createMockNotebookStep({ topLevelQuery });
+      const query = createQueryWithBreakout();
+      const step = createMockNotebookStep({ query });
       setup(step);
 
       expect(screen.queryByLabelText("Pick columns")).not.toBeInTheDocument();

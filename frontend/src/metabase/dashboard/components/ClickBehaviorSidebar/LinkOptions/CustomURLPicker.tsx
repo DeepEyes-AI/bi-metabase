@@ -4,35 +4,34 @@ import { t } from "ttag";
 import InputBlurChange from "metabase/components/InputBlurChange";
 import ModalContent from "metabase/components/ModalContent";
 import ModalWithTrigger from "metabase/components/ModalWithTrigger";
-
-import type {
-  ArbitraryCustomDestinationClickBehavior,
-  ClickBehavior,
-  DashboardCard,
-} from "metabase-types/api";
 import { isTableDisplay } from "metabase/lib/click-behavior";
 import type { UiParameter } from "metabase-lib/parameters/types";
 import { clickBehaviorIsValid } from "metabase-lib/parameters/utils/click-behavior";
+import type {
+  ArbitraryCustomDestinationClickBehavior,
+  ClickBehavior,
+  QuestionDashboardCard,
+} from "metabase-types/api";
 
 import { SidebarItem } from "../SidebarItem";
-import CustomLinkText from "./CustomLinkText";
 
-import ValuesYouCanReference from "./ValuesYouCanReference";
+import { CustomLinkText } from "./CustomLinkText";
 import {
   FormDescription,
   DoneButton,
   PickerIcon,
   PickerItemName,
 } from "./CustomURLPicker.styled";
+import { ValuesYouCanReference } from "./ValuesYouCanReference";
 
 interface Props {
-  dashcard: DashboardCard;
+  dashcard: QuestionDashboardCard;
   clickBehavior: ArbitraryCustomDestinationClickBehavior;
   parameters: UiParameter[];
   updateSettings: (settings: ClickBehavior) => void;
 }
 
-function CustomURLPicker({
+export function CustomURLPicker({
   clickBehavior,
   updateSettings,
   dashcard,
@@ -59,9 +58,7 @@ function CustomURLPicker({
   const handleReset = useCallback(() => {
     updateSettings({
       type: clickBehavior.type,
-
-      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-      // @ts-ignore
+      // @ts-expect-error allow resetting
       linkType: null,
     });
   }, [clickBehavior, updateSettings]);
@@ -117,6 +114,3 @@ function CustomURLPicker({
     </ModalWithTrigger>
   );
 }
-
-// eslint-disable-next-line import/no-default-export -- deprecated usage
-export default CustomURLPicker;

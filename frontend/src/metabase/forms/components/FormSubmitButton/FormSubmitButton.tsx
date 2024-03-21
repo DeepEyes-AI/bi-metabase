@@ -1,8 +1,10 @@
 import type { Ref } from "react";
 import { forwardRef } from "react";
 import { t } from "ttag";
-import { Button } from "metabase/ui";
+
 import type { ButtonProps } from "metabase/ui";
+import { Button } from "metabase/ui";
+
 import type { FormStatus } from "../../contexts";
 import { useFormSubmitButton } from "../../hooks";
 
@@ -55,9 +57,9 @@ const getSubmitButtonColor = (
 ) => {
   switch (status) {
     case "fulfilled":
-      return "success.0";
+      return "success";
     case "rejected":
-      return "error.0";
+      return "error";
     default:
       return color;
   }

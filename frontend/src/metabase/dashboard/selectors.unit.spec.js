@@ -1,4 +1,5 @@
 import { chain } from "icepick";
+
 import {
   getParameters,
   getSidebar,
@@ -9,8 +10,14 @@ import {
   getClickBehaviorSidebarDashcard,
   getDashboardComplete,
 } from "metabase/dashboard/selectors";
-import { createMockSettingsState } from "metabase-types/store/mocks";
 import Field from "metabase-lib/metadata/Field";
+import {
+  createMockCard,
+  createMockDashboardCard,
+  createMockHeadingDashboardCard,
+} from "metabase-types/api/mocks";
+import { createMockSettingsState } from "metabase-types/store/mocks";
+
 import { SIDEBAR_NAME } from "./constants";
 
 const STATE = {
@@ -18,13 +25,13 @@ const STATE = {
     dashboardId: 0,
     dashboards: {
       0: {
-        dashcards: [0, 1],
+        dashcards: [0, 1, 2],
         parameters: [],
       },
     },
     dashcards: {
-      0: {
-        card: {
+      0: createMockDashboardCard({
+        card: createMockCard({
           id: 0,
           dataset_query: {
             type: "native",
@@ -36,13 +43,17 @@ const STATE = {
               },
             },
           },
-        },
+        }),
         parameter_mappings: [],
-      },
-      1: {
-        card: { id: 1, dataset_query: { type: "query", query: {} } },
+      }),
+      1: createMockDashboardCard({
+        card: createMockCard({
+          id: 1,
+          dataset_query: { type: "query", query: {} },
+        }),
         parameter_mappings: [],
-      },
+      }),
+      2: createMockHeadingDashboardCard(),
     },
     sidebar: {},
   },

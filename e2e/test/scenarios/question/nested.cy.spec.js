@@ -1,7 +1,8 @@
+import { SAMPLE_DB_ID } from "e2e/support/cypress_data";
+import { SAMPLE_DATABASE } from "e2e/support/cypress_sample_database";
 import {
   restore,
   popover,
-  openOrdersTable,
   remapDisplayValueToFK,
   visitQuestion,
   visitQuestionAdhoc,
@@ -11,9 +12,6 @@ import {
   filter,
   filterField,
 } from "e2e/support/helpers";
-
-import { SAMPLE_DB_ID } from "e2e/support/cypress_data";
-import { SAMPLE_DATABASE } from "e2e/support/cypress_sample_database";
 import { createMetric } from "e2e/support/helpers/e2e-table-metadata-helpers";
 
 const { ORDERS, ORDERS_ID, PRODUCTS, PRODUCTS_ID, PEOPLE } = SAMPLE_DATABASE;
@@ -148,33 +146,6 @@ describe("scenarios > question > nested", () => {
     cy.findByText("10511");
     cy.findAllByText("June 2022");
     cy.findAllByText("13");
-  });
-
-  it.skip("should display granularity for aggregated fields in nested questions (metabase#13764)", () => {
-    openOrdersTable({ mode: "notebook" });
-
-    // add initial aggregation ("Average of Total by Order ID")
-    summarize({ mode: "notebook" });
-    // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
-    cy.findByText("Average of ...").click();
-    // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
-    cy.findByText("Total").click();
-    // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
-    cy.findByText("Pick a column to group by").click();
-    // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
-    cy.findByText("ID").click();
-
-    // add another aggregation ("Count by Average of Total")
-    summarize({ mode: "notebook" });
-    // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
-    cy.findByText("Count of rows").click();
-    // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
-    cy.findByText("Pick a column to group by").click();
-    cy.log("Reported failing on v0.34.3 - v0.37.0.2");
-    popover()
-      .contains("Average of Total")
-      .closest(".List-item")
-      .contains("Auto binned");
   });
 
   it("should apply metrics including filter to the nested question (metabase#12507)", () => {
@@ -556,10 +527,11 @@ describe("scenarios > question > nested", () => {
     cy.findByText("Filter").click();
     // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
     cy.findByText("Summaries").click();
-    cy.findByTestId("operator-select").click();
-    popover().contains("Equal to").click();
-    cy.findByPlaceholderText("Enter a number").type("5");
-    cy.button("Apply Filters").click();
+    filterField("Count", {
+      operator: "Equal to",
+      value: "5",
+    });
+    cy.button("Apply filters").click();
     cy.wait("@dataset");
 
     // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage

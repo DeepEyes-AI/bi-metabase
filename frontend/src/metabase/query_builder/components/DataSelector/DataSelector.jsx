@@ -1,46 +1,44 @@
 /* eslint-disable react/prop-types */
+import cx from "classnames";
+import PropTypes from "prop-types";
 import { createRef, createElement, Component } from "react";
 import { connect } from "react-redux";
-import PropTypes from "prop-types";
 import { t } from "ttag";
 import _ from "underscore";
-import cx from "classnames";
 
 import EmptyState from "metabase/components/EmptyState";
 import ListSearchField from "metabase/components/ListSearchField";
-import { Icon } from "metabase/core/components/Icon";
-import PopoverWithTrigger from "metabase/components/PopoverWithTrigger";
 import LoadingAndErrorWrapper from "metabase/components/LoadingAndErrorWrapper";
+import PopoverWithTrigger from "metabase/components/PopoverWithTrigger";
 import { DATA_BUCKET, getDataTypes } from "metabase/containers/DataPicker";
-
 import Databases from "metabase/entities/databases";
+import Questions from "metabase/entities/questions";
 import Schemas from "metabase/entities/schemas";
-import Tables from "metabase/entities/tables";
 import Search from "metabase/entities/search";
-
-import { getMetadata } from "metabase/selectors/metadata";
+import Tables from "metabase/entities/tables";
 import { getHasDataAccess } from "metabase/selectors/data";
+import { getMetadata } from "metabase/selectors/metadata";
 import { getSetting } from "metabase/selectors/settings";
-import { getSchemaName } from "metabase-lib/metadata/utils/schema";
+import { Icon } from "metabase/ui";
 import {
   isVirtualCardId,
+  getQuestionIdFromVirtualTableId,
   SAVED_QUESTIONS_VIRTUAL_DB_ID,
 } from "metabase-lib/metadata/utils/saved-questions";
-import {
-  SearchResults,
-  convertSearchResultToTableLikeItem,
-} from "./data-search";
-import SavedQuestionPicker from "./saved-question-picker/SavedQuestionPicker";
-import DataBucketPicker from "./DataSelectorDataBucketPicker";
-import DatabasePicker from "./DataSelectorDatabasePicker";
-import DatabaseSchemaPicker from "./DataSelectorDatabaseSchemaPicker";
-import SchemaPicker from "./DataSelectorSchemaPicker";
-import FieldPicker from "./DataSelectorFieldPicker";
-import TablePicker from "./DataSelectorTablePicker";
+import { getSchemaName } from "metabase-lib/metadata/utils/schema";
+
 import {
   EmptyStateContainer,
   TableSearchContainer,
 } from "./DataSelector.styled";
+import DataBucketPicker from "./DataSelectorDataBucketPicker";
+import DatabasePicker from "./DataSelectorDatabasePicker";
+import DatabaseSchemaPicker from "./DataSelectorDatabaseSchemaPicker";
+import FieldPicker from "./DataSelectorFieldPicker";
+import SchemaPicker from "./DataSelectorSchemaPicker";
+import TablePicker from "./DataSelectorTablePicker";
+import { SearchResults, getSearchItemTableOrCardId } from "./data-search";
+import SavedEntityPicker from "./saved-entity-picker/SavedEntityPicker";
 
 import "./DataSelector.css";
 
@@ -181,6 +179,9 @@ const DataSelector = _.compose(
       }),
       hasDataAccess: getHasDataAccess(ownProps.allDatabases ?? []),
       hasNestedQueriesEnabled: getSetting(state, "enable-nested-queries"),
+      selectedQuestion: Questions.selectors.getObject(state, {
+        entityId: getQuestionIdFromVirtualTableId(ownProps.selectedTableId),
+      }),
     }),
     {
       fetchDatabases: databaseQuery =>
@@ -189,6 +190,10 @@ const DataSelector = _.compose(
         Schemas.actions.fetchList({ dbId: databaseId }),
       fetchSchemaTables: schemaId => Schemas.actions.fetch({ id: schemaId }),
       fetchFields: tableId => Tables.actions.fetchMetadata({ id: tableId }),
+      fetchQuestion: id =>
+        Questions.actions.fetch({
+          id: getQuestionIdFromVirtualTableId(id),
+        }),
     },
   ),
 )(DataSelectorInner);
@@ -204,7 +209,8 @@ export class UnconnectedDataSelector extends Component {
       selectedTableId: props.selectedTableId,
       selectedFieldId: props.selectedFieldId,
       searchText: "",
-      isSavedQuestionPickerShown: false,
+      isSavedEntityPickerShown: false,
+      savedEntityType: null,
     };
     const computedState = this._getComputedState(props, state);
     this.state = {
@@ -221,7 +227,7 @@ export class UnconnectedDataSelector extends Component {
     selectedDataBucketId: PropTypes.string,
     selectedDatabaseId: PropTypes.number,
     selectedSchemaId: PropTypes.string,
-    selectedTableId: PropTypes.number,
+    selectedTableId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
     selectedFieldId: PropTypes.number,
     databases: PropTypes.array.isRequired,
     setDatabaseFn: PropTypes.func,
@@ -405,18 +411,29 @@ export class UnconnectedDataSelector extends Component {
 
   async componentDidMount() {
     const { activeStep } = this.state;
+    const {
+      fetchFields,
+      fetchQuestion,
+      selectedDataBucketId,
+      selectedTableId: sourceId,
+    } = this.props;
+
     if (!this.isLoadingDatasets() && !activeStep) {
       await this.hydrateActiveStep();
     }
 
-    if (this.props.selectedDataBucketId === DATA_BUCKET.DATASETS) {
-      this.showSavedQuestionPicker();
+    if (selectedDataBucketId === DATA_BUCKET.MODELS) {
+      this.showSavedEntityPicker({ entityType: "model" });
     }
 
-    if (this.props.selectedTableId) {
-      await this.props.fetchFields(this.props.selectedTableId);
-      if (this.isSavedQuestionSelected()) {
-        this.showSavedQuestionPicker();
+    if (sourceId) {
+      await fetchFields(sourceId);
+      if (this.isSavedEntitySelected()) {
+        await fetchQuestion(sourceId);
+
+        this.showSavedEntityPicker({
+          entityType: this.props.selectedQuestion?.type(),
+        });
       }
     }
   }
@@ -516,14 +533,19 @@ export class UnconnectedDataSelector extends Component {
   async hydrateActiveStep() {
     const { steps } = this.props;
     if (
-      this.isSavedQuestionSelected() ||
-      this.state.selectedDataBucketId === DATA_BUCKET.DATASETS ||
+      this.isSavedEntitySelected() ||
+      this.state.selectedDataBucketId === DATA_BUCKET.MODELS ||
       this.state.selectedDataBucketId === DATA_BUCKET.SAVED_QUESTIONS
     ) {
       await this.switchToStep(DATABASE_STEP);
     } else if (this.state.selectedTableId && steps.includes(FIELD_STEP)) {
       await this.switchToStep(FIELD_STEP);
-    } else if (this.state.selectedSchemaId && steps.includes(TABLE_STEP)) {
+    } else if (
+      // Schema id is explicitly set when going through the New > Question/Model flow,
+      // whereas we have to obtain it from the state when opening a saved question.
+      (this.state.selectedSchemaId || this.state.selectedSchema?.id) &&
+      steps.includes(TABLE_STEP)
+    ) {
       await this.switchToStep(TABLE_STEP);
     } else if (this.state.selectedDatabaseId && steps.includes(SCHEMA_STEP)) {
       await this.switchToStep(SCHEMA_STEP);
@@ -686,6 +708,8 @@ export class UnconnectedDataSelector extends Component {
       [TABLE_STEP]: () => {
         if (this.state.selectedSchemaId != null) {
           return this.props.fetchSchemaTables(this.state.selectedSchemaId);
+        } else if (this.state.selectedSchema?.id != null) {
+          return this.props.fetchSchemaTables(this.state.selectedSchema?.id);
         }
       },
       [FIELD_STEP]: () => {
@@ -747,8 +771,11 @@ export class UnconnectedDataSelector extends Component {
     }
   };
 
-  showSavedQuestionPicker = () =>
-    this.setState({ isSavedQuestionPickerShown: true });
+  showSavedEntityPicker = ({ entityType }) =>
+    this.setState({
+      isSavedEntityPickerShown: true,
+      savedEntityType: entityType,
+    });
 
   onChangeDataBucket = async selectedDataBucketId => {
     if (selectedDataBucketId === DATA_BUCKET.RAW_DATA) {
@@ -770,7 +797,7 @@ export class UnconnectedDataSelector extends Component {
 
   onChangeDatabase = async database => {
     if (database.is_saved_questions) {
-      this.showSavedQuestionPicker();
+      this.showSavedEntityPicker({ entityType: "question" });
       return;
     }
 
@@ -793,7 +820,7 @@ export class UnconnectedDataSelector extends Component {
 
   onChangeTable = async table => {
     if (this.props.setSourceTableFn) {
-      this.props.setSourceTableFn(table?.id);
+      this.props.setSourceTableFn(table?.id, table?.db_id);
     }
     await this.nextStep({ selectedTableId: table?.id });
   };
@@ -853,15 +880,15 @@ export class UnconnectedDataSelector extends Component {
       : cx("flex align-center", { disabled: readOnly });
   }
 
-  handleSavedQuestionPickerClose = () => {
+  handleSavedEntityPickerClose = () => {
     const { selectedDataBucketId } = this.state;
     if (
-      selectedDataBucketId === DATA_BUCKET.DATASETS ||
+      selectedDataBucketId === DATA_BUCKET.MODELS ||
       this.hasUsableDatasets()
     ) {
       this.previousStep();
     }
-    this.setState({ isSavedQuestionPickerShown: false });
+    this.setState({ isSavedEntityPickerShown: false, savedEntityType: null });
   };
 
   renderActiveStep() {
@@ -924,12 +951,13 @@ export class UnconnectedDataSelector extends Component {
     return null;
   }
 
-  isSavedQuestionSelected = () => isVirtualCardId(this.props.selectedTableId);
+  isSavedEntitySelected = () => isVirtualCardId(this.props.selectedTableId);
 
-  handleSavedQuestionSelect = async tableOrModelId => {
-    await this.props.fetchFields(tableOrModelId);
+  handleSavedEntitySelect = async tableOrCardId => {
+    await this.props.fetchFields(tableOrCardId);
     if (this.props.setSourceTableFn) {
-      this.props.setSourceTableFn(tableOrModelId);
+      const table = this.props.metadata.table(tableOrCardId);
+      this.props.setSourceTableFn(tableOrCardId, table.db_id);
     }
     this.popover.current.toggle();
     this.handleClose();
@@ -954,10 +982,11 @@ export class UnconnectedDataSelector extends Component {
     });
 
   handleSearchItemSelect = async item => {
-    const table = convertSearchResultToTableLikeItem(item);
-    await this.props.fetchFields(table.id);
+    const tableOrCardId = getSearchItemTableOrCardId(item);
+    await this.props.fetchFields(tableOrCardId);
     if (this.props.setSourceTableFn) {
-      this.props.setSourceTableFn(table.id);
+      const table = this.props.metadata.table(tableOrCardId);
+      this.props.setSourceTableFn(table.id, table.db_id);
     }
     this.popover.current.toggle();
     this.handleClose();
@@ -972,32 +1001,32 @@ export class UnconnectedDataSelector extends Component {
   };
 
   getSearchInputPlaceholder = () => {
-    const { activeStep, selectedDataBucketId, isSavedQuestionPickerShown } =
+    const { activeStep, selectedDataBucketId, isSavedEntityPickerShown } =
       this.state;
     if (activeStep === DATA_BUCKET_STEP) {
       return t`Search for some data…`;
     }
-    if (selectedDataBucketId === DATA_BUCKET.DATASETS) {
+    if (selectedDataBucketId === DATA_BUCKET.MODELS) {
       return t`Search for a model…`;
     }
-    return isSavedQuestionPickerShown
+    return isSavedEntityPickerShown
       ? t`Search for a question…`
       : t`Search for a table…`;
   };
 
   getSearchModels = () => {
-    const { selectedDataBucketId, isSavedQuestionPickerShown } = this.state;
+    const { selectedDataBucketId, isSavedEntityPickerShown } = this.state;
     if (!this.props.hasNestedQueriesEnabled) {
       return ["table"];
     }
     if (!this.hasUsableDatasets()) {
-      return isSavedQuestionPickerShown ? ["card"] : ["card", "table"];
+      return isSavedEntityPickerShown ? ["card"] : ["card", "table"];
     }
     if (!selectedDataBucketId) {
       return ["card", "dataset", "table"];
     }
     return {
-      [DATA_BUCKET.DATASETS]: ["dataset"],
+      [DATA_BUCKET.MODELS]: ["dataset"],
       [DATA_BUCKET.RAW_DATA]: ["table"],
       [DATA_BUCKET.SAVED_QUESTIONS]: ["card"],
     }[selectedDataBucketId];
@@ -1011,9 +1040,10 @@ export class UnconnectedDataSelector extends Component {
   renderContent = () => {
     const {
       searchText,
-      isSavedQuestionPickerShown,
+      isSavedEntityPickerShown,
       selectedDataBucketId,
       selectedTable,
+      savedEntityType,
     } = this.state;
     const { canChangeDatabase, selectedDatabaseId } = this.props;
 
@@ -1022,8 +1052,11 @@ export class UnconnectedDataSelector extends Component {
     const isSearchActive = searchText.trim().length >= MIN_SEARCH_LENGTH;
 
     const isPickerOpen =
-      isSavedQuestionPickerShown ||
-      selectedDataBucketId === DATA_BUCKET.DATASETS;
+      isSavedEntityPickerShown || selectedDataBucketId === DATA_BUCKET.MODELS;
+
+    const isDatasets =
+      selectedDataBucketId === DATA_BUCKET.MODELS ||
+      savedEntityType === "model";
 
     if (this.isLoadingDatasets()) {
       return <LoadingAndErrorWrapper loading />;
@@ -1054,17 +1087,17 @@ export class UnconnectedDataSelector extends Component {
           )}
           {!isSearchActive &&
             (isPickerOpen ? (
-              <SavedQuestionPicker
+              <SavedEntityPicker
                 collectionName={
                   selectedTable &&
                   selectedTable.schema &&
                   getSchemaName(selectedTable.schema.id)
                 }
-                isDatasets={selectedDataBucketId === DATA_BUCKET.DATASETS}
+                isDatasets={isDatasets}
                 tableId={selectedTable?.id}
                 databaseId={currentDatabaseId}
-                onSelect={this.handleSavedQuestionSelect}
-                onBack={this.handleSavedQuestionPickerClose}
+                onSelect={this.handleSavedEntitySelect}
+                onBack={this.handleSavedEntityPickerClose}
               />
             ) : (
               this.renderActiveStep()

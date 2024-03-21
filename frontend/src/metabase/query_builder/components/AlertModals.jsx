@@ -5,50 +5,41 @@ import { connect } from "react-redux";
 import { t, jt, ngettext, msgid } from "ttag";
 import _ from "underscore";
 
-// components
-import Button from "metabase/core/components/Button";
-import SchedulePicker from "metabase/containers/SchedulePicker";
-import ModalContent from "metabase/components/ModalContent";
-import DeleteModalWithConfirm from "metabase/components/DeleteModalWithConfirm";
-import ModalWithTrigger from "metabase/components/ModalWithTrigger";
-import Radio from "metabase/core/components/Radio";
-import { Icon } from "metabase/core/components/Icon";
-import ChannelSetupModal from "metabase/components/ChannelSetupModal";
-import ButtonWithStatus from "metabase/components/ButtonWithStatus";
-import PulseEditChannels from "metabase/pulse/components/PulseEditChannels";
-
-import User from "metabase/entities/users";
-
-// actions
 import { createAlert, deleteAlert, updateAlert } from "metabase/alert/alert";
-import { apiUpdateQuestion, updateUrl } from "metabase/query_builder/actions";
+import ButtonWithStatus from "metabase/components/ButtonWithStatus";
+import ChannelSetupModal from "metabase/components/ChannelSetupModal";
+import DeleteModalWithConfirm from "metabase/components/DeleteModalWithConfirm";
+import ModalContent from "metabase/components/ModalContent";
+import ModalWithTrigger from "metabase/components/ModalWithTrigger";
+import SchedulePicker from "metabase/containers/SchedulePicker";
+import Button from "metabase/core/components/Button";
+import Radio from "metabase/core/components/Radio";
+import User from "metabase/entities/users";
+import { alertIsValid } from "metabase/lib/alert";
+import * as MetabaseAnalytics from "metabase/lib/analytics";
+import MetabaseCookies from "metabase/lib/cookies";
 import { fetchPulseFormInput } from "metabase/pulse/actions";
-
-// selectors
-import { getUser, getUserIsAdmin } from "metabase/selectors/user";
-import {
-  getQuestion,
-  getVisualizationSettings,
-} from "metabase/query_builder/selectors";
+import PulseEditChannels from "metabase/pulse/components/PulseEditChannels";
 import {
   getPulseFormInput,
   hasConfiguredAnyChannelSelector,
   hasConfiguredEmailChannelSelector,
   hasLoadedChannelInfoSelector,
 } from "metabase/pulse/selectors";
-
-// lib
-import MetabaseCookies from "metabase/lib/cookies";
-import * as MetabaseAnalytics from "metabase/lib/analytics";
-
-// types
-import { alertIsValid } from "metabase/lib/alert";
+import { apiUpdateQuestion, updateUrl } from "metabase/query_builder/actions";
+import {
+  getQuestion,
+  getVisualizationSettings,
+} from "metabase/query_builder/selectors";
+import { getUser, getUserIsAdmin } from "metabase/selectors/user";
+import { Icon } from "metabase/ui";
 import {
   ALERT_TYPE_PROGRESS_BAR_GOAL,
   ALERT_TYPE_ROWS,
   ALERT_TYPE_TIMESERIES_GOAL,
   getDefaultAlert,
 } from "metabase-lib/Alert";
+
 import { AlertModalFooter, DangerZone } from "./AlertModals.styled";
 
 const getScheduleFromChannel = channel =>
@@ -148,7 +139,7 @@ class CreateAlertModalContentInner extends Component {
     }
     if (!hasSeenEducationalScreen) {
       return (
-        <ModalContent onClose={onCancel}>
+        <ModalContent onClose={onCancel} data-testid="alert-education-screen">
           <AlertEducationalScreen
             onProceed={this.proceedFromEducationalScreen}
           />
@@ -286,16 +277,9 @@ class UpdateAlertModalContentInner extends Component {
   onAlertChange = modifiedAlert => this.setState({ modifiedAlert });
 
   onUpdateAlert = async () => {
-    const {
-      question,
-      apiUpdateQuestion,
-      updateAlert,
-      updateUrl,
-      onAlertUpdated,
-    } = this.props;
+    const { question, updateAlert, updateUrl, onAlertUpdated } = this.props;
     const { modifiedAlert } = this.state;
 
-    await apiUpdateQuestion();
     await updateAlert(modifiedAlert);
     await updateUrl(question, { dirty: false });
     onAlertUpdated();
@@ -324,7 +308,7 @@ class UpdateAlertModalContentInner extends Component {
 
     // TODO: Remove PulseEdit css hack
     return (
-      <ModalContent onClose={onCancel}>
+      <ModalContent onClose={onCancel} data-testid="alert-edit">
         <div
           className="PulseEdit ml-auto mr-auto mb4"
           style={{ maxWidth: "550px" }}
@@ -363,7 +347,7 @@ export const UpdateAlertModalContent = connect(
     question: getQuestion(state),
     visualizationSettings: getVisualizationSettings(state),
   }),
-  { apiUpdateQuestion, updateAlert, deleteAlert, updateUrl },
+  { updateAlert, deleteAlert, updateUrl },
 )(UpdateAlertModalContentInner);
 
 export class DeleteAlertSection extends Component {

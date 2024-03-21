@@ -1,9 +1,11 @@
-import _ from "underscore";
 import { merge } from "icepick";
-import { isNotNull } from "metabase/lib/types";
+import _ from "underscore";
+
 import { getColorsForValues } from "metabase/lib/colors/charts";
-import { formatStaticValue } from "metabase/static-viz/lib/format";
 import type { ColorPalette } from "metabase/lib/colors/types";
+import { isNotNull } from "metabase/lib/types";
+import { formatStaticValue } from "metabase/static-viz/lib/format";
+
 import type {
   CardSeries,
   ChartSettings,
@@ -202,7 +204,7 @@ function removeEmptyValues(
 ): Record<string, string> | undefined {
   if (seriesColors) {
     return Object.fromEntries(
-      Object.entries(seriesColors).filter(([key, value]) => isNotNull(value)),
+      Object.entries(seriesColors).filter(([_key, value]) => isNotNull(value)),
     ) as unknown as Record<string, string>;
   }
 }

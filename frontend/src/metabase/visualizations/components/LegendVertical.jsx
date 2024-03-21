@@ -1,12 +1,13 @@
 /* eslint-disable react/prop-types */
 /* eslint-disable react/no-string-refs */
+import cx from "classnames";
 import { Component } from "react";
 import ReactDOM from "react-dom";
 import { t } from "ttag";
-import cx from "classnames";
-import Tooltip from "metabase/core/components/Tooltip";
-import styles from "./Legend.css";
 
+import Tooltip from "metabase/core/components/Tooltip";
+
+import styles from "./Legend.css";
 import LegendItem from "./LegendItem";
 
 export default class LegendVertical extends Component {
@@ -96,7 +97,10 @@ export default class LegendVertical extends Component {
               />
               {Array.isArray(title) && (
                 <span
-                  className={cx("LegendItem", "flex-align-right pl1")}
+                  className={cx(
+                    "LegendItem",
+                    "flex align-center flex-align-right pl1",
+                  )}
                   style={{ opacity: isMuted ? 0.4 : 1 }}
                 >
                   {title[1]}

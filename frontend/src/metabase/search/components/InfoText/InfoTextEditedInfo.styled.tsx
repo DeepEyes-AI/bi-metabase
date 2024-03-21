@@ -1,5 +1,6 @@
 import { css } from "@emotion/react";
 import styled from "@emotion/styled";
+
 import LastEditInfoLabel from "metabase/components/LastEditInfoLabel";
 import { color } from "metabase/lib/colors";
 import { breakpointMaxSmall } from "metabase/styled-components/theme";
@@ -7,14 +8,14 @@ import { breakpointMaxSmall } from "metabase/styled-components/theme";
 export const LastEditedInfoText = styled(LastEditInfoLabel)`
   ${({ theme }) => {
     return css`
-      color: ${theme.colors.text[1]};
+      color: ${theme.fn.themeColor("text-medium")};
       font-size: ${theme.fontSizes.sm};
       font-weight: 500;
 
       cursor: pointer;
 
       &:hover {
-        color: ${theme.colors.brand[1]};
+        color: ${theme.fn.themeColor("brand")};
       }
     `;
   }}

@@ -1,17 +1,9 @@
 import type { ReactNode } from "react";
 import { useCallback } from "react";
-import { t } from "ttag";
-import { push } from "react-router-redux";
 import type { Route } from "react-router";
+import { push } from "react-router-redux";
+import { t } from "ttag";
 
-import Button from "metabase/core/components/Button";
-import fitViewport from "metabase/hoc/FitViewPort";
-import { LeaveConfirmationModal } from "metabase/components/LeaveConfirmationModal";
-import Modal from "metabase/components/Modal";
-import ModalContent from "metabase/components/ModalContent";
-
-import type { PermissionsGraph } from "metabase-types/api";
-import { useDispatch, useSelector } from "metabase/lib/redux";
 import {
   FullHeightContainer,
   TabsContainer,
@@ -21,16 +13,31 @@ import {
   CloseSidebarButton,
   ToolbarButtonsContainer,
 } from "metabase/admin/permissions/components/PermissionsPageLayout/PermissionsPageLayout.styled";
-import type { IconName } from "metabase/core/components/Icon";
 import { getIsHelpReferenceOpen } from "metabase/admin/permissions/selectors/help-reference";
+import { LeaveConfirmationModal } from "metabase/components/LeaveConfirmationModal";
+import Modal from "metabase/components/Modal";
+import ModalContent from "metabase/components/ModalContent";
+import Button from "metabase/core/components/Button";
+import fitViewport from "metabase/hoc/FitViewPort";
+import { useDispatch, useSelector } from "metabase/lib/redux";
+import type { IconName } from "metabase/ui";
+import {
+  Modal as NewModal,
+  Text,
+  Button as NewButton,
+  Group,
+} from "metabase/ui";
+import type { PermissionsGraph } from "metabase-types/api";
+
 import {
   clearSaveError as clearPermissionsSaveError,
   toggleHelpReference,
 } from "../../permissions";
+import { showRevisionChangedModal } from "../../selectors/data-permissions/revision";
 import { ToolbarButton } from "../ToolbarButton";
-import { PermissionsTabs } from "./PermissionsTabs";
 
 import { PermissionsEditBar } from "./PermissionsEditBar";
+import { PermissionsTabs } from "./PermissionsTabs";
 
 type PermissionsPageTab = "data" | "collections";
 type PermissionsPageLayoutProps = {
@@ -70,7 +77,7 @@ function PermissionsPageLayout({
   helpContent,
 }: PermissionsPageLayoutProps) {
   const saveError = useSelector(state => state.admin.permissions.saveError);
-
+  const showRefreshModal = useSelector(showRevisionChangedModal);
   const isHelpReferenceOpen = useSelector(getIsHelpReferenceOpen);
   const dispatch = useDispatch();
 
@@ -132,6 +139,24 @@ function PermissionsPageLayout({
           {helpContent}
         </PermissionPageSidebar>
       )}
+      <NewModal
+        title="Someone just changed permissions"
+        opened={showRefreshModal}
+        size="lg"
+        padding="2.5rem"
+        withCloseButton={false}
+        onClose={() => true}
+      >
+        <Text mb="1rem">
+          To edit permissions, you need to start from the latest version. Please
+          refresh the page.
+        </Text>
+        <Group position="right">
+          <NewButton onClick={() => location.reload()} variant="filled">
+            Refresh the page
+          </NewButton>
+        </Group>
+      </NewModal>
     </PermissionPageRoot>
   );
 }

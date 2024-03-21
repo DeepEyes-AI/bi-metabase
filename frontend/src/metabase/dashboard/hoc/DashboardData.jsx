@@ -2,10 +2,9 @@
 import { Component } from "react";
 import { connect } from "react-redux";
 import { push } from "react-router-redux";
-
 import _ from "underscore";
-import { setErrorPage } from "metabase/redux/app";
 
+import * as dashboardActions from "metabase/dashboard/actions";
 import {
   getDashboardComplete,
   getCardData,
@@ -15,8 +14,7 @@ import {
   getIsNavigatingBackToDashboard,
   getSelectedTabId,
 } from "metabase/dashboard/selectors";
-
-import * as dashboardActions from "metabase/dashboard/actions";
+import { setErrorPage } from "metabase/redux/app";
 
 const mapStateToProps = (state, props) => {
   return {
@@ -39,12 +37,12 @@ const mapDispatchToProps = {
 /**
  * @deprecated HOCs are deprecated
  */
-export default ComposedComponent =>
+export const DashboardData = ComposedComponent =>
   connect(
     mapStateToProps,
     mapDispatchToProps,
   )(
-    class DashboardContainer extends Component {
+    class DashboardDataInner extends Component {
       async load(props) {
         const {
           initialize,
@@ -58,10 +56,20 @@ export default ComposedComponent =>
 
         initialize({ clearCache: !isNavigatingBackToDashboard });
 
-        try {
-          await fetchDashboard(dashboardId, location && location.query, {
+        const result = await fetchDashboard({
+          dashId: dashboardId,
+          queryParams: location && location.query,
+          options: {
             clearCache: !isNavigatingBackToDashboard,
-          });
+          },
+        });
+
+        if (result.error) {
+          setErrorPage(result.payload);
+          return;
+        }
+
+        try {
           await fetchDashboardCardData({
             reload: false,
             clearCache: !isNavigatingBackToDashboard,

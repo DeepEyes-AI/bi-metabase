@@ -1,16 +1,17 @@
+import cx from "classnames";
 import { useCallback, useLayoutEffect, useMemo, useState } from "react";
 import { connect } from "react-redux";
 import { push, replace } from "react-router-redux";
-import cx from "classnames";
 import { msgid, ngettext, t } from "ttag";
 import _ from "underscore";
-import { PLUGIN_FEATURE_LEVEL_PERMISSIONS } from "metabase/plugins";
-import * as Urls from "metabase/lib/urls";
+
 import Schemas from "metabase/entities/schemas";
-import { Icon } from "metabase/core/components/Icon";
+import * as Urls from "metabase/lib/urls";
+import { PLUGIN_FEATURE_LEVEL_PERMISSIONS } from "metabase/plugins";
+import { Icon } from "metabase/ui";
+import type Schema from "metabase-lib/metadata/Schema";
 import type { DatabaseId, SchemaId } from "metabase-types/api";
 import type { Dispatch, State } from "metabase-types/store";
-import type Schema from "metabase-lib/metadata/Schema";
 
 interface OwnProps {
   selectedDatabaseId: DatabaseId;
@@ -75,7 +76,7 @@ const MetadataSchemaList = ({
   }, [selectedDatabaseId, selectedSchemaId, allSchemas, onSelectSchema]);
 
   return (
-    <div className="MetadataEditor-table-list AdminList flex-no-shrink">
+    <aside className="MetadataEditor-table-list AdminList flex-no-shrink">
       <div className="AdminList-search">
         <Icon name="search" size={16} />
         <input
@@ -103,7 +104,7 @@ const MetadataSchemaList = ({
           />
         ))}
       </ul>
-    </div>
+    </aside>
   );
 };
 

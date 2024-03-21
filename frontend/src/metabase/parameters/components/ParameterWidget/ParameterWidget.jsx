@@ -1,11 +1,13 @@
 /* eslint-disable react/prop-types */
-import { Component } from "react";
 import PropTypes from "prop-types";
-import { Icon } from "metabase/core/components/Icon";
+import { Component } from "react";
+
 import ParameterValueWidget from "../ParameterValueWidget";
+
 import {
   ParameterContainer,
   ParameterFieldSet,
+  SettingsIcon,
 } from "./ParameterWidget.styled";
 
 export class ParameterWidget extends Component {
@@ -18,6 +20,8 @@ export class ParameterWidget extends Component {
   static propTypes = {
     parameter: PropTypes.object,
     commitImmediately: PropTypes.bool,
+    setParameterValueToDefault: PropTypes.func,
+    enableParameterRequiredBehavior: PropTypes.bool,
   };
 
   static defaultProps = {
@@ -33,6 +37,8 @@ export class ParameterWidget extends Component {
       editingParameter,
       commitImmediately,
       parameters,
+      setParameterValueToDefault,
+      enableParameterRequiredBehavior,
     } = this.props;
 
     const isEditingParameter = editingParameter?.id === parameter.id;
@@ -51,6 +57,8 @@ export class ParameterWidget extends Component {
         focusChanged={this.focusChanged}
         isFullscreen={isFullscreen}
         commitImmediately={commitImmediately}
+        setParameterValueToDefault={setParameterValueToDefault}
+        enableRequiredBehavior={enableParameterRequiredBehavior}
       />
     );
   }
@@ -70,6 +78,7 @@ export class ParameterWidget extends Component {
       setValue,
       children,
       dragHandle,
+      enableParameterRequiredBehavior,
     } = this.props;
 
     const isEditingParameter =
@@ -83,6 +92,7 @@ export class ParameterWidget extends Component {
       return (
         <ParameterFieldSet
           legend={legend}
+          required={enableParameterRequiredBehavior && parameter.required}
           noPadding={true}
           fieldHasValueOrFocus={fieldHasValueOrFocus}
           className={className}
@@ -109,18 +119,14 @@ export class ParameterWidget extends Component {
           {dragHandle}
         </div>
         {parameter.name}
-        <Icon className="flex-align-right" name="gear" size={16} />
+        <SettingsIcon name="gear" size={16} />
       </ParameterContainer>
     );
 
     if (isFullscreen) {
-      if (parameter.value != null) {
-        return (
-          <div style={{ fontSize: "0.833em" }}>{renderFieldInNormalMode()}</div>
-        );
-      } else {
-        return <span className="hide" />;
-      }
+      return (
+        <div style={{ fontSize: "0.833em" }}>{renderFieldInNormalMode()}</div>
+      );
     } else if (isEditing && setEditingParameter) {
       return renderEditing();
     } else {

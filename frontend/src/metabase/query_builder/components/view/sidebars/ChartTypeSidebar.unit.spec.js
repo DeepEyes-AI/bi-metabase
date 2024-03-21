@@ -1,4 +1,5 @@
 import { render, fireEvent, screen, within } from "@testing-library/react";
+
 import { createMockMetadata } from "__support__/metadata";
 import ChartTypeSidebar from "metabase/query_builder/components/view/sidebars/ChartTypeSidebar";
 import registerVisualizations from "metabase/visualizations/register";
@@ -27,7 +28,7 @@ const setup = props => {
   render(
     <ChartTypeSidebar
       question={question}
-      query={question.query()}
+      query={question.legacyQuery({ useStructuredQuery: true })}
       result={{ data: DATA }}
       {...props}
     />,

@@ -1,25 +1,21 @@
+import cx from "classnames";
 import { useCallback, useMemo } from "react";
 import { t } from "ttag";
-import cx from "classnames";
 
-import { color as c } from "metabase/lib/colors";
-import { useToggle } from "metabase/hooks/use-toggle";
-
-import { Icon } from "metabase/core/components/Icon";
-import IconButtonWrapper from "metabase/components/IconButtonWrapper";
 import ExpandingContent from "metabase/components/ExpandingContent";
-
-import type { Query } from "metabase-lib/types";
+import IconButtonWrapper from "metabase/components/IconButtonWrapper";
+import { useToggle } from "metabase/hooks/use-toggle";
+import { color as c } from "metabase/lib/colors";
+import { Icon } from "metabase/ui";
 import type Question from "metabase-lib/Question";
-import type StructuredQuery from "metabase-lib/queries/StructuredQuery";
+import type { Query } from "metabase-lib/types";
 
+import NotebookStepPreview from "../NotebookStepPreview";
 import type {
   NotebookStep as INotebookStep,
   NotebookStepAction,
 } from "../types";
-import NotebookStepPreview from "../NotebookStepPreview";
 
-import { STEP_UI } from "./steps";
 import ActionButton from "./ActionButton";
 import {
   StepActionsContainer,
@@ -30,6 +26,7 @@ import {
   StepRoot,
   PreviewButton,
 } from "./NotebookStep.styled";
+import { STEP_UI } from "./steps";
 
 function hasLargeButton(action: NotebookStepAction) {
   return !STEP_UI[action.type].compact;
@@ -43,7 +40,7 @@ interface NotebookStepProps {
   reportTimezone: string;
   readOnly?: boolean;
   openStep: (id: string) => void;
-  updateQuery: (query: StructuredQuery | Query) => Promise<void>;
+  updateQuery: (query: Query) => Promise<void>;
 }
 
 function NotebookStep({
@@ -77,7 +74,7 @@ function NotebookStep({
               large={hasLargeActionButtons}
               {...stepUi}
               aria-label={stepUi.title}
-              onClick={() => action.action({ query: step.query, openStep })}
+              onClick={() => action.action({ openStep })}
             />
           ),
         };
@@ -87,16 +84,15 @@ function NotebookStep({
     actions.sort((a, b) => (b.priority || 0) - (a.priority || 0));
 
     return actions.map(action => action.button);
-  }, [step.query, step.actions, isLastStep, openStep]);
+  }, [step.actions, isLastStep, openStep]);
 
   const handleClickRevert = useCallback(() => {
-    const reverted = step.revert?.(
-      step.query,
-      step.itemIndex,
-      step.topLevelQuery,
-      step.stageIndex,
-    );
-    if (reverted) {
+    if (step.revert) {
+      const reverted = step.revert(
+        step.query,
+        step.stageIndex,
+        step.itemIndex ?? undefined,
+      );
       updateQuery(reverted);
     }
   }, [step, updateQuery]);
@@ -108,7 +104,7 @@ function NotebookStep({
   } = STEP_UI[step.type] || {};
 
   const color = getColor();
-  const canPreview = step?.previewQuery?.isValid?.();
+  const canPreview = Boolean(step.getPreviewQuery);
   const hasPreviewButton = !isPreviewOpen && canPreview;
   const canRevert = typeof step.revert === "function" && !readOnly;
 
@@ -140,8 +136,8 @@ function NotebookStep({
               <NotebookStepComponent
                 color={color}
                 step={step}
-                topLevelQuery={step.topLevelQuery}
                 query={step.query}
+                stageIndex={step.stageIndex}
                 sourceQuestion={sourceQuestion}
                 updateQuery={updateQuery}
                 isLastOpened={isLastOpened}

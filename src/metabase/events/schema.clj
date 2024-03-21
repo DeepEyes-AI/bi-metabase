@@ -10,10 +10,14 @@
                       [:map {:closed true}
                        [:user-id pos-int?]
                        [:object [:fn #(t2/instance-of? :model/Dashboard %)]]])
+      view-only      (mc/schema
+                      [:map {:closed true}
+                       [:user-id [:maybe pos-int?]]
+                       [:object [:fn #(t2/instance-of? :model/Dashboard %)]]])
       with-dashcards (mut/assoc default-schema
                                 :dashcards [:sequential [:map [:id pos-int?]]])]
   (def ^:private dashboard-events-schemas
-    {:event/dashboard-read             default-schema
+    {:event/dashboard-read             view-only
      :event/dashboard-create           default-schema
      :event/dashboard-update           default-schema
      :event/dashboard-delete           default-schema
@@ -32,12 +36,9 @@
      :event/card-update default-schema
      :event/card-delete default-schema
      :event/card-query  [:map {:closed true}
-                         [:card-id                       pos-int?]
-                         [:user-id                       [:maybe pos-int?]]
-                         [:cached       {:optional true} :any]
-                         [:context      {:optional true} :any]
-                         [:ignore_cache {:optional true} :any]]}))
-
+                         [:card-id pos-int?]
+                         [:user-id [:maybe pos-int?]]
+                         [:context {:optional true} :any]]}))
 
 ;; user events
 
@@ -81,15 +82,11 @@
 
 (let [default-schema (mc/schema
                       [:map {:closed true}
-                       [:object [:fn #(t2/instance-of? :model/Database %)]]])
-      with-user      (mc/schema
-                      [:merge default-schema
-                       [:map {:closed true}
-                        [:user-id  pos-int?]]])]
-
+                       [:object [:fn #(t2/instance-of? :model/Database %)]]
+                       [:previous-object {:optional true} [:fn #(t2/instance-of? :model/Database %)]]
+                       [:user-id pos-int?]])]
   (def ^:private database-events
-    {:event/database-create with-user
-
+    {:event/database-create default-schema
      :event/database-update default-schema
      :event/database-delete default-schema}))
 
@@ -118,6 +115,20 @@
                        [:user-id  pos-int?]
                        [:object [:fn #(t2/instance-of? :model/Table %)]]])})
 
+(let [default-schema (mc/schema
+                      [:map {:closed true}
+                       [:user-id [:maybe pos-int?]]
+                       [:object [:maybe [:fn #(boolean (t2/model %))]]]
+                       [:has-access {:optional true} [:maybe :boolean]]])]
+  (def ^:private permission-failure-events
+    {:event/read-permission-failure default-schema
+     :event/write-permission-failure default-schema
+     :event/update-permission-failure default-schema
+     :event/create-permission-failure (mc/schema
+                                       [:map {:closed true}
+                                        [:user-id [:maybe pos-int?]]
+                                        [:model [:or :keyword :string]]])}))
+
 (def topic->schema
   "Returns the schema for an event topic."
   (merge dashboard-events-schemas
@@ -128,4 +139,5 @@
          database-events
          alert-schema
          pulse-schemas
-         table-events))
+         table-events
+         permission-failure-events))

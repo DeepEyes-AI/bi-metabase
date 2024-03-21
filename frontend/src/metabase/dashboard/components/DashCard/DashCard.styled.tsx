@@ -1,5 +1,6 @@
-import styled from "@emotion/styled";
 import { css } from "@emotion/react";
+import styled from "@emotion/styled";
+
 import { color } from "metabase/lib/colors";
 
 export interface DashCardRootProps {
@@ -41,33 +42,6 @@ export const DashCardRoot = styled.div<DashCardRootProps>`
     shouldForceHiddenBackground && hiddenBackgroundStyle}
 `;
 
-export const DashboardCardActionsPanel = styled.div`
-  padding: 0.125em 0.25em;
-  position: absolute;
-  background: white;
-  transform: translateY(-50%);
-  top: 0;
-  right: 20px;
-  border-radius: 8px;
-  box-shadow: 0px 1px 3px rgb(0 0 0 / 13%);
-  cursor: default;
-  transition: opacity 200ms;
-  opacity: 0;
-  pointer-events: none;
-  // react-resizable covers panel, we have to override it
-  z-index: 2;
-
-  .Card:hover &,
-  .Card:focus-within & {
-    opacity: 1;
-    pointer-events: all;
-  }
-
-  .Dash--dragging & {
-    display: none;
-  }
-`;
-
 export const VirtualDashCardOverlayRoot = styled.div`
   display: flex;
   align-items: center;
@@ -77,5 +51,5 @@ export const VirtualDashCardOverlayRoot = styled.div`
 
 export const VirtualDashCardOverlayText = styled.h4`
   color: ${color("text-medium")};
-  padding: 1.5rem;
+  padding: 1rem;
 `;

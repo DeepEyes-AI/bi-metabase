@@ -1,16 +1,20 @@
 /// Utility functions used by both the LineAreaBar renderer and the RowRenderer
 
-import _ from "underscore";
 import { getIn } from "icepick";
+import _ from "underscore";
 
-import { parseTimestamp } from "metabase/lib/time";
 import {
   NULL_NUMERIC_VALUE,
   TOTAL_ORDINAL_VALUE,
 } from "metabase/lib/constants";
 import { formatNullable } from "metabase/lib/formatting/nullable";
+import { parseTimestamp } from "metabase/lib/time";
+import { isNative } from "metabase-lib/queries/utils/card";
 import { datasetContainsNoResults } from "metabase-lib/queries/utils/dataset";
+import { isNumeric } from "metabase-lib/types/utils/isa";
 
+import { computeNumericDataInverval, dimensionIsNumeric } from "./numeric";
+import { getLineAreaBarComparisonSettings } from "./settings";
 import {
   computeTimeseriesDataInverval,
   dimensionIsTimeseries,
@@ -18,11 +22,8 @@ import {
   getTimezone,
   minTimeseriesUnit,
 } from "./timeseries";
-import { computeNumericDataInverval, dimensionIsNumeric } from "./numeric";
-
 import { getAvailableCanvasWidth, getAvailableCanvasHeight } from "./utils";
 import { invalidDateWarning, nullDimensionWarning } from "./warnings";
-import { getLineAreaBarComparisonSettings } from "./settings";
 
 export function initChart(chart, element) {
   // set the bounds
@@ -355,13 +356,14 @@ export function xValueForWaterfallTotal({ settings, series }) {
 
 const uniqueCards = series => _.uniq(series.map(({ card }) => card.id)).length;
 
-const aggregateColumns = series => {
+const getMetricColumnsCount = series => {
+  const metricColumnPredicate = !isNative(series[0]?.card)
+    ? column => column.source === "aggregation"
+    : column => isNumeric(column);
+
   return _.uniq(
     series
-      .map(({ data: { cols } }) => {
-        return cols.filter(col => col.source === "aggregation");
-      })
-      .flat()
+      .flatMap(({ data: { cols } }) => cols.filter(metricColumnPredicate))
       .map(({ name }) => name),
   ).length;
 };
@@ -371,13 +373,19 @@ export function shouldSplitYAxis(
   datas,
   yExtents,
 ) {
-  if (
-    isScalarSeries ||
-    chartType === "scatter" ||
-    settings["graph.y_axis.auto_split"] === false ||
-    (uniqueCards(series) < 2 && aggregateColumns(series) < 2) ||
-    isStacked(settings, datas)
-  ) {
+  const isSuitableChartType = !isScalarSeries && chartType !== "scatter";
+  if (!isSuitableChartType) {
+    return false;
+  }
+
+  if (!settings["graph.y_axis.auto_split"]) {
+    return false;
+  }
+
+  const isSingleCardWithSingleMetricColumn =
+    uniqueCards(series) <= 1 && getMetricColumnsCount(series) <= 1;
+
+  if (isSingleCardWithSingleMetricColumn || isStacked(settings, datas)) {
     return false;
   }
 

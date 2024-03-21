@@ -89,10 +89,14 @@
         {base-type :base_type}       (some-> expression-definition annotate/infer-expression-type)
         {::add/keys [desired-alias]} (mbql.u/match-one source-query
                                        [:expression (_ :guard (partial = expression-name)) source-opts]
-                                       source-opts)]
+                                       source-opts)
+        source-alias                 (or desired-alias expression-name)]
     [:field
-     (or desired-alias expression-name)
-     (assoc opts :base-type (or base-type :type/*))]))
+     source-alias
+     (-> opts
+         (assoc :base-type          (or base-type :type/*)
+                ::add/source-table  ::add/source
+                ::add/source-alias  source-alias))]))
 
 (defn- rewrite-fields-and-expressions [query]
   (mbql.u/replace query
@@ -104,10 +108,10 @@
     :expression
     (raise-source-query-expression-ref query &match)
 
-    ;; mark all Fields at the new top level as `::outer-select` so QP implementations know not to apply coercion or
+    ;; mark all Fields at the new top level as `:qp/ignore-coercion` so QP implementations know not to apply coercion or
     ;; whatever to them a second time.
-    [:field _id-or-name (_opts :guard (every-pred :temporal-unit (complement ::outer-select)))]
-    (recur (mbql.u/update-field-options &match assoc ::outer-select true))
+    [:field _id-or-name (_opts :guard (every-pred :temporal-unit (complement :qp/ignore-coercion)))]
+    (recur (mbql.u/update-field-options &match assoc :qp/ignore-coercion true))
 
     [:field id-or-name (opts :guard :join-alias)]
     (let [{::add/keys [desired-alias]} (mbql.u/match-one (:source-query query)

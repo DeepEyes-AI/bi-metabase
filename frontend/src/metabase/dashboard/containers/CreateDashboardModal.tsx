@@ -1,19 +1,17 @@
+import type { LocationDescriptor } from "history";
 import { useCallback } from "react";
-import { t } from "ttag";
 import { connect } from "react-redux";
 import { push } from "react-router-redux";
-import type { LocationDescriptor } from "history";
+import { t } from "ttag";
 
-import { CreateCollectionOnTheGo } from "metabase/containers/CreateCollectionOnTheGo";
 import ModalContent from "metabase/components/ModalContent";
-
+import { CreateCollectionOnTheGo } from "metabase/containers/CreateCollectionOnTheGo";
 import * as Urls from "metabase/lib/urls";
-
 import type { Dashboard } from "metabase-types/api";
 import type { State } from "metabase-types/store";
 
 import type { CreateDashboardFormOwnProps } from "./CreateDashboardForm";
-import CreateDashboardForm from "./CreateDashboardForm";
+import { CreateDashboardFormConnected } from "./CreateDashboardForm";
 
 interface CreateDashboardModalOwnProps
   extends Omit<CreateDashboardFormOwnProps, "onCancel"> {
@@ -52,7 +50,7 @@ function CreateDashboardModal({
     <CreateCollectionOnTheGo>
       {({ resumedValues }) => (
         <ModalContent title={t`New dashboard`} onClose={onClose}>
-          <CreateDashboardForm
+          <CreateDashboardFormConnected
             {...props}
             onCreate={handleCreate}
             onCancel={onClose}
@@ -64,8 +62,7 @@ function CreateDashboardModal({
   );
 }
 
-// eslint-disable-next-line import/no-default-export -- deprecated usage
-export default connect<
+export const CreateDashboardModalConnected = connect<
   unknown,
   CreateDashboardModalDispatchProps,
   CreateDashboardModalOwnProps,

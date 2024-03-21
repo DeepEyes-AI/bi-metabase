@@ -1,25 +1,27 @@
 /* eslint-disable react/prop-types */
 import userEvent from "@testing-library/user-event";
+import fetchMock from "fetch-mock";
 import { Route } from "react-router";
-import {
-  renderWithProviders,
-  screen,
-  waitForLoaderToBeRemoved,
-} from "__support__/ui";
+
 import {
   setupCollectionByIdEndpoint,
   setupSearchEndpoints,
   setupUserRecipientsEndpoint,
 } from "__support__/server-mocks";
+import {
+  renderWithProviders,
+  screen,
+  waitForLoaderToBeRemoved,
+} from "__support__/ui";
+import { checkNotNull } from "metabase/lib/types";
+import type { SearchResultsFooter } from "metabase/nav/components/search/SearchResults";
+import { SearchResults } from "metabase/nav/components/search/SearchResults";
 import type { SearchResult } from "metabase-types/api";
 import {
   createMockCollection,
   createMockSearchResult,
   createMockUser,
 } from "metabase-types/api/mocks";
-import { checkNotNull } from "metabase/lib/types";
-import type { SearchResultsFooter } from "metabase/nav/components/search/SearchResults";
-import { SearchResults } from "metabase/nav/components/search/SearchResults";
 
 type SearchResultsSetupProps = {
   searchResults?: SearchResult[];
@@ -47,8 +49,8 @@ const setup = async ({
   searchText = "test",
   footer = null,
 }: SearchResultsSetupProps = {}) => {
-  setupSearchEndpoints(searchResults);
   setupUserRecipientsEndpoint({ users: [createMockUser()] });
+  setupSearchEndpoints(searchResults);
   setupCollectionByIdEndpoint({
     collections: [createMockCollection()],
   });
@@ -176,5 +178,10 @@ describe("SearchResults", () => {
     expect(screen.getByTestId("test-total")).toHaveTextContent(
       TEST_SEARCH_RESULTS.length.toString(),
     );
+  });
+
+  it("should only call the /api/user/recipients endpoint once even if there are multiple search results", async () => {
+    await setup();
+    expect(fetchMock.calls("path:/api/user/recipients").length).toBe(1);
   });
 });

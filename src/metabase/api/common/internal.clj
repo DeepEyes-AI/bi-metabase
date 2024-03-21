@@ -49,6 +49,7 @@
                ;; /api/ee/sso/sso/ -> /auth/sso
                (str/replace #"^metabase-enterprise\.sso\.api\." "/auth/")
                ;; this should be only the replace for enterprise once we resolved #22687
+               (str/replace #"^metabase-enterprise\.serialization\.api" "/api/ee/serialization")
                (str/replace #"^metabase-enterprise\.([^\.]+)\.api\." "/api/ee/$1/"))
            (if (vector? route)
              (first route)
@@ -78,7 +79,10 @@
 (defn- dox-for-schema
   "Generate the docstring for `schema` for use in auto-generated API documentation."
   [schema route-str]
-  (try (umd/describe schema)
+  (try
+    ;; we can ignore the warning printed by umd/describe when schema is `nil`.
+    (binding [*out* (new java.io.StringWriter)]
+      (umd/describe schema))
        (catch Exception _
          (ex-data
           (when (and schema config/is-dev?) ;; schema is nil for any var without a schema. That's ok!
@@ -105,9 +109,13 @@
     (str "\n\n### PARAMS:\n\n"
          (str/join "\n\n"
                    (for [[param-symb schema] param-symb->schema]
-                     (format "*  **`%s`** %s"
-                             (param-name param-symb schema)
-                             (dox-for-schema schema route-str)))))))
+                     (let [p-name (param-name param-symb schema)
+                           p-desc (dox-for-schema schema route-str)]
+                       (format "-  **`%s`** %s"
+                               p-name
+                               (if (str/blank? p-desc) ; some params lack descriptions
+                                 p-desc
+                                 (u/add-period p-desc)))))))))
 
 (defn- format-route-dox
   "Return a markdown-formatted string to be used as documentation for a `defendpoint` function."

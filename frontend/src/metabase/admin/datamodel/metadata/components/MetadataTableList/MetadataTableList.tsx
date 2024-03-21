@@ -1,16 +1,20 @@
+import cx from "classnames";
 import type { ChangeEvent, MouseEvent } from "react";
 import { useCallback, useMemo, useState } from "react";
 import { connect } from "react-redux";
 import { push } from "react-router-redux";
 import { useAsyncFn } from "react-use";
-import cx from "classnames";
 import { msgid, ngettext, t } from "ttag";
 import _ from "underscore";
-import { PLUGIN_FEATURE_LEVEL_PERMISSIONS } from "metabase/plugins";
-import * as Urls from "metabase/lib/urls";
-import Tables from "metabase/entities/tables";
-import { Icon } from "metabase/core/components/Icon";
+
 import Tooltip from "metabase/core/components/Tooltip";
+import Tables from "metabase/entities/tables";
+import { isSyncCompleted, isSyncInProgress } from "metabase/lib/syncing";
+import * as Urls from "metabase/lib/urls";
+import { PLUGIN_FEATURE_LEVEL_PERMISSIONS } from "metabase/plugins";
+import { Icon } from "metabase/ui";
+import type Table from "metabase-lib/metadata/Table";
+import { getSchemaName } from "metabase-lib/metadata/utils/schema";
 import type {
   DatabaseId,
   SchemaId,
@@ -18,9 +22,7 @@ import type {
   TableVisibilityType,
 } from "metabase-types/api";
 import type { Dispatch, State } from "metabase-types/store";
-import { isSyncCompleted, isSyncInProgress } from "metabase/lib/syncing";
-import type Table from "metabase-lib/metadata/Table";
-import { getSchemaName } from "metabase-lib/metadata/utils/schema";
+
 import {
   AdminListItem,
   BackIconContainer,
@@ -103,7 +105,7 @@ const MetadataTableList = ({
   }, [selectedDatabaseId, onSelectDatabase]);
 
   return (
-    <div className="MetadataEditor-table-list AdminList flex-no-shrink">
+    <aside className="MetadataEditor-table-list AdminList flex-no-shrink">
       <TableSearch searchText={searchText} onChangeSearchText={setSearchText} />
       {canGoBack && (
         <TableBreadcrumbs
@@ -148,7 +150,7 @@ const MetadataTableList = ({
           <TableEmptyState />
         )}
       </ul>
-    </div>
+    </aside>
   );
 };
 

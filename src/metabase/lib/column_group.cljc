@@ -1,5 +1,6 @@
 (ns metabase.lib.column-group
   (:require
+   [medley.core :as m]
    [metabase.lib.card :as lib.card]
    [metabase.lib.join :as lib.join]
    [metabase.lib.join.util :as lib.join.util]
@@ -18,6 +19,11 @@
    ;; the other two group types are for various types of joins.
    :group-type/join.explicit
    :group-type/join.implicit])
+
+(def ^:private group-type-ordering
+  {:group-type/main          1
+   :group-type/join.explicit 2
+   :group-type/join.implicit 3})
 
 (def ^:private ColumnGroup
   "Schema for the metadata returned by [[group-columns]], and accepted by [[columns-group-columns]]."
@@ -94,14 +100,20 @@
 (defmethod display-info-for-group-method :group-type/join.implicit
   [query stage-number {:keys [fk-field-id], :as _column-group}]
   (merge
-   (when-let [field (lib.metadata/field query fk-field-id)]
-     (let [field-info (lib.metadata.calculation/display-info query stage-number field)]
+   (when-let [;; TODO: This is clumsy and expensive; there is likely a neater way to find the full FK column.
+              ;; Note that using `lib.metadata/field` is out - we need to respect metadata overrides etc. in models, and
+              ;; `lib.metadata/field` uses the field's original status.
+              fk-column (->> (lib.util/query-stage query stage-number)
+                             (lib.metadata.calculation/visible-columns query stage-number)
+                             (m/find-first #(and (= (:id %) fk-field-id)
+                                                 (:fk-target-field-id %))))]
+     (let [fk-info (lib.metadata.calculation/display-info query stage-number fk-column)]
        ;; Implicitly joined column pickers don't use the target table's name, they use the FK field's name with
        ;; "ID" dropped instead.
        ;; This is very intentional: one table might have several FKs to one foreign table, each with different
        ;; meaning (eg. ORDERS.customer_id vs. ORDERS.supplier_id both linking to a PEOPLE table).
        ;; See #30109 for more details.
-       (assoc field-info :fk-reference-name (lib.util/strip-id (:display-name field-info)))))
+       (update fk-info :display-name lib.util/strip-id)))
    {:is-from-join           false
     :is-implicitly-joinable true}))
 
@@ -115,7 +127,9 @@
 
 (defmethod column-group-info-method :source/implicitly-joinable
   [column-metadata]
-  {::group-type :group-type/join.implicit, :fk-field-id (:fk-field-id column-metadata)})
+  {::group-type :group-type/join.implicit,
+   :fk-field-id (:fk-field-id column-metadata)
+   :fk-join-alias (:fk-join-alias column-metadata)})
 
 (defmethod column-group-info-method :source/joins
   [{:keys [table-id], :lib/keys [card-id], :as column-metadata}]
@@ -142,6 +156,15 @@
   [column-metadata :- lib.metadata/ColumnMetadata]
   (column-group-info-method column-metadata))
 
+(defn- column-group-ordering
+  [fk-field-names {::keys [group-type] :as column-group}]
+  (into [(group-type-ordering group-type)]
+        (case group-type
+          :group-type/main          ["main"] ; There's only ever one main group, so no need to sort them further.
+          :group-type/join.explicit [(:join-alias column-group)]
+          :group-type/join.implicit [(or (:fk-join-alias column-group) "")
+                                     (fk-field-names (:fk-field-id column-group) "")])))
+
 (mu/defn group-columns :- [:sequential ColumnGroup]
   "Given a group of columns returned by a function like [[metabase.lib.order-by/orderable-columns]], group the columns
   by Table or equivalent (e.g. Saved Question) so that they're in an appropriate shape for showing in the Query
@@ -163,15 +186,28 @@
                  categories.name]}]
 
   Groups have the type `:metadata/column-group` and can be passed directly
-  to [[metabase.lib.metadata.calculation/display-info]]."
+  to [[metabase.lib.metadata.calculation/display-info]].
+
+  Ordered to put own columns first, then explicit joins alphabetically by join alias, then implicit joins alphabetically
+  by FK join alias + FK field name (which is used as the table name). So if the same FK is available multiple times,
+  they are ordered: own first, then alphabetically by the join alias for that FK."
   [column-metadatas :- [:sequential lib.metadata/ColumnMetadata]]
-  (mapv (fn [[group-info columns]]
-          (assoc group-info
-                 :lib/type :metadata/column-group
-                 ::columns columns))
-        (group-by column-group-info column-metadatas)))
+  (let [fk-field-names (into {} (comp (filter :id)
+                                      (map (juxt :id :name)))
+                             column-metadatas)]
+    (->> (group-by column-group-info column-metadatas)
+         (map (fn [[group-info columns]]
+                (assoc group-info
+                       :lib/type :metadata/column-group
+                       ::columns columns)))
+         (sort-by (partial column-group-ordering fk-field-names))
+         vec)))
 
 (mu/defn columns-group-columns :- [:sequential lib.metadata/ColumnMetadata]
   "Get the columns associated with a column group"
   [column-group :- ColumnGroup]
   (::columns column-group))
+
+(defmethod lib.metadata.calculation/display-name-method :metadata/column-group
+  [query stage-number column-group _display-name-style]
+  (:display-name (lib.metadata.calculation/display-info query stage-number column-group)))

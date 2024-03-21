@@ -1,11 +1,11 @@
-// eslint-disable-next-line no-restricted-imports -- deprecated usage
-import moment from "moment-timezone";
-import mockDate from "mockdate";
 import userEvent from "@testing-library/user-event";
-import { render, screen } from "__support__/ui";
+import mockDate from "mockdate";
+import moment from "moment-timezone"; // eslint-disable-line no-restricted-imports -- deprecated usage
 
-import MetabaseSettings from "metabase/lib/settings";
+import { render, screen } from "__support__/ui";
 import { updateMomentStartOfWeek } from "metabase/lib/i18n";
+import MetabaseSettings from "metabase/lib/settings";
+
 import type { CalendarProps } from "./Calendar";
 import Calendar from "./Calendar";
 
@@ -76,7 +76,7 @@ describe("Calendar", () => {
       expect(
         screen
           .getAllByTestId("calendar-day-name")
-          .map((dayEl, index) => dayEl.textContent),
+          .map(dayEl => dayEl.textContent),
       ).toEqual(["We", "Th", "Fr", "Sa", "Su", "Mo", "Tu"]);
 
       // check that listed dates are correct and start with proper day-of-week

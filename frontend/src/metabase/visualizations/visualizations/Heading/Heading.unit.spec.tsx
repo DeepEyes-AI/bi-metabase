@@ -1,13 +1,10 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { color } from "metabase/lib/colors";
 
-import {
-  createMockDashboard,
-  createMockDashboardCard,
-} from "metabase-types/api/mocks";
+import { color } from "metabase/lib/colors";
+import { buildTextTagTarget } from "metabase-lib/parameters/utils/targets";
 import type {
-  DashboardCard,
+  QuestionDashboardCard,
   Dashboard,
   ParameterId,
   Parameter,
@@ -15,7 +12,10 @@ import type {
   VisualizationSettings,
   DashboardParameterMapping,
 } from "metabase-types/api";
-import { buildTextTagTarget } from "metabase-lib/parameters/utils/targets";
+import {
+  createMockDashboard,
+  createMockDashboardCard,
+} from "metabase-types/api/mocks";
 
 import { Heading } from "../Heading";
 
@@ -24,7 +24,7 @@ interface Settings {
 }
 
 interface Options {
-  dashcard?: DashboardCard;
+  dashcard?: QuestionDashboardCard;
   isEditing?: boolean;
   isEditingParameter?: boolean;
   onUpdateVisualizationSettings?: ({ text }: { text: string }) => void;
@@ -205,6 +205,27 @@ describe("Text", () => {
         expect(
           screen.getByDisplayValue("Variable: {{variable}}"),
         ).toBeInTheDocument();
+      });
+
+      it("should call onUpdateVisualizationSettings on blur", () => {
+        const mockOnUpdateVisualizationSettings = jest.fn();
+        const options = {
+          settings: getSettingsWithText("text"),
+          isEditing: true,
+          onUpdateVisualizationSettings: mockOnUpdateVisualizationSettings,
+        };
+        setup(options);
+
+        userEvent.click(
+          screen.getByTestId("editing-dashboard-heading-preview"),
+        );
+        userEvent.type(screen.getByRole("textbox"), "foo");
+        userEvent.tab();
+
+        expect(mockOnUpdateVisualizationSettings).toHaveBeenCalledTimes(1);
+        expect(mockOnUpdateVisualizationSettings).toHaveBeenCalledWith({
+          text: "textfoo",
+        });
       });
     });
   });

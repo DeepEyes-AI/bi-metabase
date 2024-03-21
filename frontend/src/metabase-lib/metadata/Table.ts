@@ -1,17 +1,21 @@
+/* eslint-disable import/order */
 import _ from "underscore";
+
 // NOTE: this needs to be imported first due to some cyclical dependency nonsense
-import Question from "../Question"; // eslint-disable-line import/order
-import { singularize } from "metabase/lib/formatting";
-import type { NormalizedTable } from "metabase-types/api";
+import Question from "../Question";
+
 import { isVirtualCardId } from "metabase-lib/metadata/utils/saved-questions";
 import { getAggregationOperators } from "metabase-lib/operators/utils";
 import type StructuredQuery from "metabase-lib/queries/StructuredQuery";
-import type Metadata from "./Metadata";
-import type Schema from "./Schema";
+import type { NormalizedTable } from "metabase-types/api";
+import { singularize } from "metabase/lib/formatting";
+
+import type Database from "./Database";
 import type Field from "./Field";
 import type ForeignKey from "./ForeignKey";
-import type Database from "./Database";
+import type Metadata from "./Metadata";
 import type Metric from "./Metric";
+import type Schema from "./Schema";
 import type Segment from "./Segment";
 
 interface Table
@@ -80,17 +84,17 @@ class Table {
     });
   }
 
-  isSavedQuestion() {
-    return this.savedQuestionId() !== null;
-  }
-
   savedQuestionId() {
     const match = String(this.id).match(/card__(\d+)/);
     return match ? parseInt(match[1]) : null;
   }
 
-  query(query = {}) {
-    return (this.question().query() as StructuredQuery).updateQuery(q => ({
+  legacyQuery(query = {}) {
+    return (
+      this.question().legacyQuery({
+        useStructuredQuery: true,
+      }) as StructuredQuery
+    ).updateQuery(q => ({
       ...q,
       ...query,
     }));
@@ -165,16 +169,6 @@ class Table {
       .filter(field => field.isFK() && field.fk_target_field_id)
       .map(field => this.metadata?.field(field.fk_target_field_id)?.table)
       .filter(Boolean) as Table[];
-  }
-
-  primaryKeys(): { field: Field; index: number }[] {
-    const pks: { field: Field; index: number }[] = [];
-    this.getFields().forEach((field, index) => {
-      if (field.isPK()) {
-        pks.push({ field, index });
-      }
-    });
-    return pks;
   }
 
   clone() {

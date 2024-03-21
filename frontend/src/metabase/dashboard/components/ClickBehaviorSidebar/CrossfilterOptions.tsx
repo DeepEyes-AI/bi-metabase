@@ -1,23 +1,22 @@
 import { t } from "ttag";
 
-import ClickMappings from "metabase/dashboard/components/ClickMappings";
-
+import { ClickMappingsConnected } from "metabase/dashboard/components/ClickMappings";
 import type {
   ClickBehavior,
   Dashboard,
-  DashboardCard,
+  QuestionDashboardCard,
 } from "metabase-types/api";
 
 import { Heading, SidebarContent } from "./ClickBehaviorSidebar.styled";
 
 interface Props {
   dashboard: Dashboard;
-  dashcard: DashboardCard;
+  dashcard: QuestionDashboardCard;
   clickBehavior: ClickBehavior;
   updateSettings: (settings: ClickBehavior) => void;
 }
 
-function CrossfilterOptions({
+export function CrossfilterOptions({
   clickBehavior,
   dashboard,
   dashcard,
@@ -26,7 +25,7 @@ function CrossfilterOptions({
   return (
     <SidebarContent>
       <Heading className="text-medium">{t`Pick one or more filters to update`}</Heading>
-      <ClickMappings
+      <ClickMappingsConnected
         object={dashboard}
         dashcard={dashcard}
         isDashboard
@@ -37,6 +36,3 @@ function CrossfilterOptions({
     </SidebarContent>
   );
 }
-
-// eslint-disable-next-line import/no-default-export -- deprecated usage
-export default CrossfilterOptions;

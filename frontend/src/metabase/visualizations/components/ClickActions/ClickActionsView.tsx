@@ -1,12 +1,13 @@
 import type { RegularClickAction } from "metabase/visualizations/types";
+
+import { ClickActionControl } from "./ClickActionControl";
 import { Container, Divider } from "./ClickActionsPopover.styled";
+import { ClickActionsViewSection } from "./ClickActionsViewSection";
 import {
   getGroupedAndSortedActions,
   getSectionContentDirection,
   getSectionTitle,
 } from "./utils";
-import { ClickActionsViewSection } from "./ClickActionsViewSection";
-import { ClickActionControl } from "./ClickActionControl";
 
 interface Props {
   clickActions: RegularClickAction[];
@@ -38,7 +39,7 @@ export const ClickActionsView = ({
             contentDirection={contentDirection}
           >
             {withTopDivider && <Divider />}
-            {actions.map((action, index) => (
+            {actions.map(action => (
               <ClickActionControl
                 key={action.name}
                 action={action}

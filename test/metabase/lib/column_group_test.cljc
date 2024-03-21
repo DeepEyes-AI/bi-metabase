@@ -31,17 +31,19 @@
                                              {:name "NAME", :display-name "Name"}]}]
             groups))
     (testing `lib/display-info
-      (is (=? [{:is-from-join           false
-                :is-implicitly-joinable false
-                :name                   "VENUES"
-                :display-name           "Venues"}
-               {:is-from-join           false
-                :is-implicitly-joinable true
-                :name                   "CATEGORY_ID"
-                :display-name           "Category ID"
-                :fk-reference-name      "Category"}]
+      (is (=? [[{:is-from-join           false
+                 :is-implicitly-joinable false
+                 :name                   "VENUES"
+                 :display-name           "Venues"}
+                "Venues"]
+               [{:is-from-join           false
+                 :is-implicitly-joinable true
+                 :name                   "CATEGORY_ID"
+                 :display-name           "Category"}
+                "Category"]]
               (for [group groups]
-                (lib/display-info query group)))))
+                [(lib/display-info query group)
+                 (lib/display-name query group)]))))
     (testing `lib/columns-group-columns
       (is (= columns
              (mapcat lib/columns-group-columns groups))))))
@@ -94,13 +96,30 @@
         groups  (lib/group-columns columns)]
     (is (=? [{::lib.column-group/group-type :group-type/main
               ::lib.column-group/columns    [{:display-name "User ID", :lib/source :source/card}
-                                             {:display-name "Count", :lib/source :source/card}]}]
+                                             {:display-name "Count", :lib/source :source/card}]}
+             {::lib.column-group/group-type :group-type/join.implicit
+              :fk-field-id                  (meta/id :checkins :user-id)
+              :fk-join-alias                nil
+              ::lib.column-group/columns    [{:display-name "ID", :lib/source :source/implicitly-joinable}
+                                             {:display-name "Name", :lib/source :source/implicitly-joinable}
+                                             {:display-name "Last Login", :lib/source :source/implicitly-joinable}]}]
             groups))
     (testing `lib/display-info
       (is (=? [{:name                   "My Card"
                 :display-name           "My Card"
                 :is-from-join           false
-                :is-implicitly-joinable false}]
+                :is-implicitly-joinable false}
+               {:name                   "USER_ID"
+                :display-name           "User"
+                :long-display-name      "User ID"
+                :semantic-type          :type/FK
+                :effective-type         :type/Integer
+                :is-aggregation         false
+                :is-breakout            false
+                :is-from-join           false
+                :is-from-previous-stage false
+                :is-implicitly-joinable true
+                :is-calculated          false}]
               (for [group groups]
                 (lib/display-info query group)))))
     (testing `lib/columns-group-columns
@@ -163,8 +182,7 @@
                {:is-from-join           false
                 :is-implicitly-joinable true
                 :name                   "CATEGORY_ID"
-                :display-name           "Category ID"
-                :fk-reference-name      "Category"}]
+                :display-name           "Category"}]
               (for [group groups]
                 (lib/display-info query group)))))
     (testing `lib/columns-group-columns
@@ -179,13 +197,30 @@
     (is (=? [{::lib.column-group/group-type :group-type/main
               ::lib.column-group/columns    [{:display-name "User ID", :lib/source :source/card}
                                              {:display-name "Count", :lib/source :source/card}
-                                             {:display-name "expr", :lib/source :source/expressions}]}]
+                                             {:display-name "expr", :lib/source :source/expressions}]}
+             {::lib.column-group/group-type :group-type/join.implicit
+              :fk-field-id                  (meta/id :checkins :user-id)
+              :fk-join-alias                nil
+              ::lib.column-group/columns    [{:display-name "ID", :lib/source :source/implicitly-joinable}
+                                             {:display-name "Name", :lib/source :source/implicitly-joinable}
+                                             {:display-name "Last Login", :lib/source :source/implicitly-joinable}]}]
             groups))
     (testing `lib/display-info
       (is (=? [{:name                   "My Card"
                 :display-name           "My Card"
                 :is-from-join           false
-                :is-implicitly-joinable false}]
+                :is-implicitly-joinable false}
+               {:name                   "USER_ID"
+                :display-name           "User"
+                :long-display-name      "User ID"
+                :semantic-type          :type/FK
+                :effective-type         :type/Integer
+                :is-aggregation         false
+                :is-breakout            false
+                :is-from-join           false
+                :is-from-previous-stage false
+                :is-implicitly-joinable true
+                :is-calculated          false}]
               (for [group groups]
                 (lib/display-info query group)))))
     (testing `lib/columns-group-columns
@@ -298,7 +333,8 @@
                       (for [group groups]
                         (lib/display-info lib.tu/venues-query group)))))
             (testing "Card *is* present in MetadataProvider"
-              (let [query (assoc lib.tu/venues-query :lib/metadata metadata-provider)]
+              (let [query  (assoc lib.tu/venues-query :lib/metadata metadata-provider)
+                    groups (lib/group-columns (rhs-columns query card))]
                 (is (=? [{:name         "Mock categories card"
                           :display-name "Mock Categories Card"
                           :is-from-join true}]
@@ -319,12 +355,11 @@
         user-cols    ["ID" "ADDRESS" "EMAIL" "PASSWORD" "NAME" "CITY" "LONGITUDE"
                       "STATE" "SOURCE" "BIRTH_DATE" "ZIP" "LATITUDE" "CREATED_AT"]
         product-cols ["ID" "EAN" "TITLE" "CATEGORY" "VENDOR" "PRICE" "RATING" "CREATED_AT"]
-        implicit     (fn [field-names alias-prefix]
+        implicit     (fn [field-names alias-prefix alias-suffix]
                        {::lib.column-group/group-type :group-type/join.implicit
                         :lib/type :metadata/column-group
                         ::lib.column-group/columns
-                        (for [alias-suffix ["" "_2"]
-                              field-name   field-names]
+                        (for [field-name field-names]
                           {:name                     field-name
                            :lib/desired-column-alias (str alias-prefix field-name alias-suffix)
                            :lib/source               :source/implicitly-joinable})})]
@@ -348,6 +383,108 @@
                 {:name field-name
                  :lib/desired-column-alias (str "Orders__" field-name)
                  :lib/source :source/joins})}
-             (implicit user-cols    "PEOPLE__via__USER_ID__")
-             (implicit product-cols "PRODUCTS__via__PRODUCT_ID__")]
+             (implicit product-cols "PRODUCTS__via__PRODUCT_ID__" "")
+             (implicit user-cols    "PEOPLE__via__USER_ID__" "")
+             (implicit product-cols "PRODUCTS__via__PRODUCT_ID__" "_2")
+             (implicit user-cols    "PEOPLE__via__USER_ID__" "_2")]
             (lib/group-columns marked)))))
+
+(deftest ^:parallel self-joined-cards-duplicate-implicit-columns-test
+  (testing "Duplicate columns from different foreign key paths should get grouped separately (#34742)"
+    (let [card (:orders lib.tu/mock-cards)
+          query (lib/query lib.tu/metadata-provider-with-mock-cards card)
+          clause (lib/join-clause card [(lib/= (first (lib/join-condition-lhs-columns query card nil nil))
+                                               (first (lib/join-condition-rhs-columns query card nil nil)))])
+
+          query (lib/join query clause)
+          cols (lib/visible-columns query)
+          [_ _ _ product-1 _ product-2 :as groups] (lib/group-columns cols)]
+      (is (=? [{:display-name "Mock Orders Card"
+                :is-from-join false,
+                :is-implicitly-joinable false}
+               ;; Not sure why this is inconsistent
+               {:display-name "Mock orders card"
+                :is-from-join true,
+                :is-implicitly-joinable false}
+               {:display-name "Product"
+                :is-from-join false,
+                :is-implicitly-joinable true}
+               {:display-name "User"
+                :is-from-join false,
+                :is-implicitly-joinable true}
+               {:display-name "Product"
+                :is-from-join false,
+                :is-implicitly-joinable true}
+               {:display-name "User"
+                :is-from-join false,
+                :is-implicitly-joinable true}]
+              (map #(lib/display-info query %) groups)))
+      (is (=? [{:lib/desired-column-alias "PEOPLE__via__USER_ID__ID", :fk-join-alias nil}
+               {:lib/desired-column-alias "PEOPLE__via__USER_ID__ADDRESS", :fk-join-alias nil}
+               {:lib/desired-column-alias "PEOPLE__via__USER_ID__EMAIL", :fk-join-alias nil}
+               {:lib/desired-column-alias "PEOPLE__via__USER_ID__PASSWORD", :fk-join-alias nil}
+               {:lib/desired-column-alias "PEOPLE__via__USER_ID__NAME", :fk-join-alias nil}
+               {:lib/desired-column-alias "PEOPLE__via__USER_ID__CITY", :fk-join-alias nil}
+               {:lib/desired-column-alias "PEOPLE__via__USER_ID__LONGITUDE", :fk-join-alias nil}
+               {:lib/desired-column-alias "PEOPLE__via__USER_ID__STATE", :fk-join-alias nil}
+               {:lib/desired-column-alias "PEOPLE__via__USER_ID__SOURCE", :fk-join-alias nil}
+               {:lib/desired-column-alias "PEOPLE__via__USER_ID__BIRTH_DATE", :fk-join-alias nil}
+               {:lib/desired-column-alias "PEOPLE__via__USER_ID__ZIP", :fk-join-alias nil}
+               {:lib/desired-column-alias "PEOPLE__via__USER_ID__LATITUDE", :fk-join-alias nil}
+               {:lib/desired-column-alias "PEOPLE__via__USER_ID__CREATED_AT", :fk-join-alias nil}]
+              (::lib.column-group/columns product-1)))
+      (is (=? [{:lib/desired-column-alias "PEOPLE__via__USER_ID__ID_2", :fk-join-alias "Mock orders card"}
+               {:lib/desired-column-alias "PEOPLE__via__USER_ID__ADDRESS_2", :fk-join-alias "Mock orders card"}
+               {:lib/desired-column-alias "PEOPLE__via__USER_ID__EMAIL_2", :fk-join-alias "Mock orders card"}
+               {:lib/desired-column-alias "PEOPLE__via__USER_ID__PASSWORD_2", :fk-join-alias "Mock orders card"}
+               {:lib/desired-column-alias "PEOPLE__via__USER_ID__NAME_2", :fk-join-alias "Mock orders card"}
+               {:lib/desired-column-alias "PEOPLE__via__USER_ID__CITY_2", :fk-join-alias "Mock orders card"}
+               {:lib/desired-column-alias "PEOPLE__via__USER_ID__LONGITUDE_2", :fk-join-alias "Mock orders card"}
+               {:lib/desired-column-alias "PEOPLE__via__USER_ID__STATE_2", :fk-join-alias "Mock orders card"}
+               {:lib/desired-column-alias "PEOPLE__via__USER_ID__SOURCE_2", :fk-join-alias "Mock orders card"}
+               {:lib/desired-column-alias "PEOPLE__via__USER_ID__BIRTH_DATE_2", :fk-join-alias "Mock orders card"}
+               {:lib/desired-column-alias "PEOPLE__via__USER_ID__ZIP_2", :fk-join-alias "Mock orders card"}
+               {:lib/desired-column-alias "PEOPLE__via__USER_ID__LATITUDE_2", :fk-join-alias "Mock orders card"}
+               {:lib/desired-column-alias "PEOPLE__via__USER_ID__CREATED_AT_2", :fk-join-alias "Mock orders card"}]
+              (::lib.column-group/columns product-2))))))
+
+(deftest ^:parallel column-group-order-test
+  (testing "column groups should be returned in order: main, explicit joins, implicit joins"
+    (let [query (-> (lib/query meta/metadata-provider (meta/table-metadata :orders))
+                    (lib/join (lib/join-clause (meta/table-metadata :orders)
+                                               [(lib/= (meta/field-metadata :orders :id)
+                                                       (-> (meta/field-metadata :orders :id)
+                                                           (lib/with-join-alias "Orders")))]))
+                    (lib/join (lib/join-clause (meta/table-metadata :reviews)
+                                               [(lib/= (meta/field-metadata :reviews :product-id)
+                                                       (meta/field-metadata :orders :product-id))])))
+          ;; Deliberately randomizing the order of the columns.
+          cols  (shuffle (lib/visible-columns query))]
+      (is (=? [{::lib.column-group/group-type :group-type/main}
+               ;; Explicit joins, ordered by join alias.
+               {::lib.column-group/group-type :group-type/join.explicit
+                :join-alias                   "Orders"}
+               {::lib.column-group/group-type :group-type/join.explicit
+                :join-alias                   "Reviews - Product"}
+               ;; Implicit joins, ordered by the join alias and then the FK column name:
+               ;; - "PRODUCT_ID"
+               ;; - "USER_ID"
+               ;; - Orders.PRODUCT_ID
+               ;; - Orders.USER_ID
+               ;; - "Reviews - Product.PRODUCT_ID"
+               {::lib.column-group/group-type :group-type/join.implicit
+                :fk-join-alias                nil
+                :fk-field-id                  (meta/id :orders :product-id)}
+               {::lib.column-group/group-type :group-type/join.implicit
+                :fk-join-alias                nil
+                :fk-field-id                  (meta/id :orders :user-id)}
+               {::lib.column-group/group-type :group-type/join.implicit
+                :fk-join-alias                "Orders"
+                :fk-field-id                  (meta/id :orders :product-id)}
+               {::lib.column-group/group-type :group-type/join.implicit
+                :fk-join-alias                "Orders"
+                :fk-field-id                  (meta/id :orders :user-id)}
+               {::lib.column-group/group-type :group-type/join.implicit
+                :fk-join-alias                "Reviews - Product"
+                :fk-field-id                  (meta/id :reviews :product-id)}]
+              (lib/group-columns cols))))))

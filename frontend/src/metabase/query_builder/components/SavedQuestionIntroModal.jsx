@@ -1,7 +1,7 @@
 /* eslint-disable react/prop-types */
 import { Component } from "react";
-
 import { t } from "ttag";
+
 import Modal from "metabase/components/Modal";
 import ModalContent from "metabase/components/ModalContent";
 
@@ -22,11 +22,7 @@ export default class SavedQuestionIntroModal extends Component {
         <ModalContent title={title} className="Modal-content text-centered py2">
           <div className="px2 pb2 text-paragraph">{message}</div>
           <div className="Form-actions flex justify-center py1">
-            <button
-              data-metabase-event="QueryBuilder;IntroModal"
-              className="Button Button--primary"
-              onClick={onClose}
-            >
+            <button className="Button Button--primary" onClick={onClose}>
               {t`Okay`}
             </button>
           </div>

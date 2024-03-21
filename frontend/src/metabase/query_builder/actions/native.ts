@@ -1,11 +1,10 @@
 import { createAction } from "redux-actions";
 
+import Questions from "metabase/entities/questions";
 import * as MetabaseAnalytics from "metabase/lib/analytics";
 import { createThunkAction } from "metabase/lib/redux";
-
-import Questions from "metabase/entities/questions";
 import { getMetadata } from "metabase/selectors/metadata";
-
+import type NativeQuery from "metabase-lib/queries/NativeQuery";
 import type {
   CardId,
   NativeQuerySnippet,
@@ -13,8 +12,6 @@ import type {
   TemplateTag,
 } from "metabase-types/api";
 import type { Dispatch, GetState } from "metabase-types/store";
-
-import type NativeQuery from "metabase-lib/queries/NativeQuery";
 
 import {
   getDataReferenceStack,
@@ -149,7 +146,7 @@ export const insertSnippet =
     if (!question) {
       return;
     }
-    const query = question.query() as NativeQuery;
+    const query = question.legacyQuery() as NativeQuery;
     const nativeEditorCursorOffset = getNativeEditorCursorOffset(getState());
     const nativeEditorSelectedText = getNativeEditorSelectedText(getState());
     const selectionStart =
@@ -174,7 +171,7 @@ export const setTemplateTag = createThunkAction(
       if (!question) {
         return;
       }
-      const query = question.query() as NativeQuery;
+      const query = question.legacyQuery() as NativeQuery;
       const newQuestion = query.setTemplateTag(tag.name, tag).question();
       dispatch(updateQuestion(newQuestion));
     };
@@ -190,7 +187,7 @@ export const setTemplateTagConfig = createThunkAction(
       if (!question) {
         return;
       }
-      const query = question.query() as NativeQuery;
+      const query = question.legacyQuery() as NativeQuery;
       const newQuestion = query.setTemplateTagConfig(tag, parameter).question();
       dispatch(updateQuestion(newQuestion));
     };

@@ -15,6 +15,10 @@ export const ORDERS_QUESTION_ID = _.findWhere(SAMPLE_INSTANCE_DATA.questions, {
   name: "Orders",
 }).id;
 
+export const ORDERS_MODEL_ID = _.findWhere(SAMPLE_INSTANCE_DATA.questions, {
+  name: "Orders Model",
+}).id;
+
 export const ORDERS_COUNT_QUESTION_ID = _.findWhere(
   SAMPLE_INSTANCE_DATA.questions,
   { name: "Orders, Count" },
@@ -33,6 +37,11 @@ export const ADMIN_PERSONAL_COLLECTION_ID = _.findWhere(
 export const NORMAL_PERSONAL_COLLECTION_ID = _.findWhere(
   SAMPLE_INSTANCE_DATA.collections,
   { name: "Robert Tableton's Personal Collection" },
+).id;
+
+export const READ_ONLY_PERSONAL_COLLECTION_ID = _.findWhere(
+  SAMPLE_INSTANCE_DATA.collections,
+  { name: "Read Only Tableton's Personal Collection" },
 ).id;
 
 export const NO_DATA_PERSONAL_COLLECTION_ID = _.findWhere(
@@ -75,4 +84,29 @@ export const NORMAL_USER_ID = _.findWhere(SAMPLE_INSTANCE_DATA.users, {
 
 export const NODATA_USER_ID = _.findWhere(SAMPLE_INSTANCE_DATA.users, {
   email: "nodata@metabase.test",
+}).id;
+
+export const ADMINISTRATORS_GROUP_ID = _.findWhere(
+  SAMPLE_INSTANCE_DATA.groups,
+  { name: "Administrators" },
+).id;
+
+export const ALL_USERS_GROUP_ID = _.findWhere(SAMPLE_INSTANCE_DATA.groups, {
+  name: "All Users",
+}).id;
+
+export const COLLECTION_GROUP_ID = _.findWhere(SAMPLE_INSTANCE_DATA.groups, {
+  name: "collection",
+}).id;
+
+export const DATA_GROUP_ID = _.findWhere(SAMPLE_INSTANCE_DATA.groups, {
+  name: "data",
+}).id;
+
+export const NOSQL_GROUP_ID = _.findWhere(SAMPLE_INSTANCE_DATA.groups, {
+  name: "nosql",
+}).id;
+
+export const READONLY_GROUP_ID = _.findWhere(SAMPLE_INSTANCE_DATA.groups, {
+  name: "readonly",
 }).id;

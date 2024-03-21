@@ -1,3 +1,4 @@
+import { ORDERS_QUESTION_ID } from "e2e/support/cypress_sample_instance_data";
 import {
   restore,
   changeBinningForDimension,
@@ -5,8 +6,6 @@ import {
   summarize,
   visitQuestion,
 } from "e2e/support/helpers";
-
-import { ORDERS_QUESTION_ID } from "e2e/support/cypress_sample_instance_data";
 
 /**
  * The list of issues this spec covers:
@@ -41,7 +40,7 @@ describe("scenarios > binning > from a saved QB question using implicit joins", 
       });
 
       // Make sure time series assertQueryBuilderState works as well
-      cy.findAllByTestId("select-button-content").contains("Year").click();
+      cy.findByTestId("timeseries-bucket-button").contains("Year").click();
       // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
       cy.findByText("Month").click();
 
@@ -106,7 +105,7 @@ describe("scenarios > binning > from a saved QB question using implicit joins", 
       });
 
       // Make sure time series assertQueryBuilderStateter works as well
-      cy.findAllByTestId("select-button-content").contains("Year").click();
+      cy.findByTestId("timeseries-bucket-button").contains("Year").click();
       // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
       cy.findByText("Month").click();
 

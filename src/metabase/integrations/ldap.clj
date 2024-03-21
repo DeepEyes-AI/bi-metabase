@@ -9,6 +9,7 @@
    [metabase.plugins.classloader :as classloader]
    [metabase.util :as u]
    [metabase.util.i18n :refer [deferred-tru tru]]
+   [metabase.util.log :as log]
    [metabase.util.malli :as mu]
    [metabase.util.malli.schema :as ms])
   (:import
@@ -22,58 +23,70 @@
   (classloader/require 'metabase-enterprise.enhancements.integrations.ldap))
 
 (defsetting ldap-host
-  (deferred-tru "Server hostname."))
+  (deferred-tru "Server hostname.")
+  :audit :getter)
 
 (defsetting ldap-port
   (deferred-tru "Server port, usually 389 or 636 if SSL is used.")
-  :type :integer
-  :default 389)
+  :type    :integer
+  :default 389
+  :audit   :getter)
 
 (defsetting ldap-security
   (deferred-tru "Use SSL, TLS or plain text.")
   :type    :keyword
   :default :none
+  :audit   :raw-value
   :setter  (fn [new-value]
              (when (some? new-value)
                (assert (#{:none :ssl :starttls} (keyword new-value))))
              (setting/set-value-of-type! :keyword :ldap-security new-value)))
 
 (defsetting ldap-bind-dn
-  (deferred-tru "The Distinguished Name to bind as (if any), this user will be used to lookup information about other users."))
+  (deferred-tru "The Distinguished Name to bind as (if any), this user will be used to lookup information about other users.")
+  :audit :getter)
 
 (defsetting ldap-password
   (deferred-tru "The password to bind with for the lookup user.")
-  :sensitive? true)
+  :sensitive? true
+  :audit     :getter)
 
 (defsetting ldap-user-base
-  (deferred-tru "Search base for users. (Will be searched recursively)"))
+  (deferred-tru "Search base for users. (Will be searched recursively)")
+  :audit :getter)
 
 (defsetting ldap-user-filter
   (deferred-tru "User lookup filter. The placeholder '{login}' will be replaced by the user supplied login.")
-  :default "(&(objectClass=inetOrgPerson)(|(uid={login})(mail={login})))")
+  :default "(&(objectClass=inetOrgPerson)(|(uid={login})(mail={login})))"
+  :audit   :getter)
 
 (defsetting ldap-attribute-email
   (deferred-tru "Attribute to use for the user''s email. (usually ''mail'', ''email'' or ''userPrincipalName'')")
   :default "mail"
-  :getter (fn [] (u/lower-case-en (setting/get-value-of-type :string :ldap-attribute-email))))
+  :getter  (fn [] (u/lower-case-en (setting/get-value-of-type :string :ldap-attribute-email)))
+  :audit   :getter)
 
 (defsetting ldap-attribute-firstname
   (deferred-tru "Attribute to use for the user''s first name. (usually ''givenName'')")
   :default "givenName"
-  :getter (fn [] (u/lower-case-en (setting/get-value-of-type :string :ldap-attribute-firstname))))
+  :getter  (fn [] (u/lower-case-en (setting/get-value-of-type :string :ldap-attribute-firstname)))
+  :audit   :getter)
 
 (defsetting ldap-attribute-lastname
   (deferred-tru "Attribute to use for the user''s last name. (usually ''sn'')")
   :default "sn"
-  :getter (fn [] (u/lower-case-en (setting/get-value-of-type :string :ldap-attribute-lastname))))
+  :getter  (fn [] (u/lower-case-en (setting/get-value-of-type :string :ldap-attribute-lastname)))
+  :audit   :getter)
 
 (defsetting ldap-group-sync
   (deferred-tru "Enable group membership synchronization with LDAP.")
   :type    :boolean
-  :default false)
+  :default false
+  :audit   :getter)
 
 (defsetting ldap-group-base
-  (deferred-tru "Search base for groups. Not required for LDAP directories that provide a ''memberOf'' overlay, such as Active Directory. (Will be searched recursively)"))
+  (deferred-tru "Search base for groups. Not required for LDAP directories that provide a ''memberOf'' overlay, such as Active Directory. (Will be searched recursively)")
+  :audit   :getter)
 
 (defsetting ldap-group-mappings
   ;; Should be in the form: {"cn=Some Group,dc=...": [1, 2, 3]} where keys are LDAP group DNs and values are lists of
@@ -82,6 +95,7 @@
   :type    :json
   :cache?  false
   :default {}
+  :audit   :getter
   :getter  (fn []
              (json/parse-string (setting/get-value-of-type :string :ldap-group-mappings) #(DN. (str %))))
   :setter  (fn [new-value]
@@ -142,8 +156,15 @@
 
 (defn- get-connection
   "Connects to LDAP with the currently set settings and returns the connection."
-  ^LDAPConnectionPool []
-  (ldap/connect (settings->ldap-options)))
+  ^LDAPConnectionPool
+  []
+  (let [options (settings->ldap-options)]
+    (log/debugf "Opening LDAP connection with options %s" (u/pprint-to-str options))
+    (try
+      (ldap/connect options)
+      (catch LDAPException e
+        (log/errorf "Failed to obtain LDAP connection: %s" (.getMessage e))
+        (throw e)))))
 
 (defn do-with-ldap-connection
   "Impl for [[with-ldap-connection]] macro."
@@ -189,10 +210,13 @@
              group-base-error)
            (catch Exception _e
              group-base-error)))
+       (log/debug "LDAP connection test successful")
        {:status :SUCCESS}))
     (catch LDAPException e
+       (log/debugf "LDAP connection test failed: " (.getMessage e))
       {:status :ERROR, :message (.getMessage e), :code (.getResultCode e)})
     (catch Exception e
+      (log/debugf "LDAP connection test failed: " (.getMessage e))
       {:status :ERROR, :message (.getMessage e)})))
 
 (defn test-current-ldap-details

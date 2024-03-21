@@ -1,7 +1,9 @@
-import { useState } from "react";
 import userEvent from "@testing-library/user-event";
+import { useState } from "react";
+
 import { render, screen, getIcon } from "__support__/ui";
 import type { FieldType, FieldValueOptions } from "metabase-types/api";
+
 import type { OptionEditorProps } from "./OptionEditor";
 import { OptionPopover, textToOptions } from "./OptionEditor";
 
@@ -27,6 +29,7 @@ async function baseSetup({
   render(<UncontrolledOptionEditor />);
 
   userEvent.click(getIcon("list"));
+  userEvent.unhover(getIcon("list"));
   await screen.findByRole("tooltip");
 
   const input = screen.getByPlaceholderText("Enter one option per line");

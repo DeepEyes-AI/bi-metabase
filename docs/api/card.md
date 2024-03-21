@@ -14,7 +14,7 @@ Delete the publicly-accessible link to this Card.
 
 ### PARAMS:
 
-*  **`card-id`** value must be an integer greater than zero.
+-  **`card-id`** value must be an integer greater than zero.
 
 ## `DELETE /api/card/:id`
 
@@ -22,20 +22,20 @@ Delete a Card. (DEPRECATED -- don't delete a Card anymore -- archive it instead.
 
 ### PARAMS:
 
-*  **`id`** value must be an integer greater than zero.
+-  **`id`** value must be an integer greater than zero.
 
 ## `GET /api/card/`
 
 Get all the Cards. Option filter param `f` can be used to change the set of Cards that are returned; default is
-  `all`, but other options include `mine`, `bookmarked`, `database`, `table`, `recent`, `popular`, :using_model
-  and `archived`. See corresponditng implementation functions above for the specific behavior of each filter
-  option. :card_index.
+  `all`, but other options include `mine`, `bookmarked`, `database`, `table`, `using_model`, `using_metric`,
+  `using_segment`, and `archived`. See corresponding implementation functions above for the specific behavior of each
+  filterp option. :card_index.
 
 ### PARAMS:
 
-*  **`f`** nullable enum of archived, table, using_model, bookmarked, popular, all, recent, mine, database
+-  **`f`** nullable enum of archived, table, using_model, bookmarked, using_segment, all, mine, using_metric, database.
 
-*  **`model_id`** nullable value must be an integer greater than zero.
+-  **`model_id`** nullable value must be an integer greater than zero.
 
 ## `GET /api/card/:card-id/params/:param-key/search/:query`
 
@@ -48,11 +48,11 @@ Fetch possible values of the parameter whose ID is `:param-key` that contain `:q
 
 ### PARAMS:
 
-*  **`card-id`** value must be an integer greater than zero.
+-  **`card-id`** value must be an integer greater than zero.
 
-*  **`param-key`** value must be a non-blank string.
+-  **`param-key`** value must be a non-blank string.
 
-*  **`query`** value must be a non-blank string.
+-  **`query`** value must be a non-blank string.
 
 ## `GET /api/card/:card-id/params/:param-key/values`
 
@@ -63,9 +63,9 @@ Fetch possible values of the parameter whose ID is `:param-key`.
 
 ### PARAMS:
 
-*  **`card-id`** value must be an integer greater than zero.
+-  **`card-id`** value must be an integer greater than zero.
 
-*  **`param-key`** value must be a non-blank string.
+-  **`param-key`** value must be a non-blank string.
 
 ## `GET /api/card/:id`
 
@@ -73,9 +73,9 @@ Get `Card` with ID.
 
 ### PARAMS:
 
-*  **`id`** value must be an integer greater than zero.
+-  **`id`** value must be an integer greater than zero.
 
-*  **`ignore_view`** nullable boolean
+-  **`ignore_view`** nullable boolean.
 
 ## `GET /api/card/:id/related`
 
@@ -83,7 +83,7 @@ Return related entities.
 
 ### PARAMS:
 
-*  **`id`** value must be an integer greater than zero.
+-  **`id`** value must be an integer greater than zero.
 
 ## `GET /api/card/:id/series`
 
@@ -95,13 +95,13 @@ Fetches a list of comptatible series with the card with id `card_id`.
 
 ### PARAMS:
 
-*  **`id`** integer
+-  **`id`** integer.
 
-*  **`last_cursor`** nullable value must be an integer greater than zero.
+-  **`last_cursor`** nullable value must be an integer greater than zero.
 
-*  **`query`** nullable value must be a non-blank string.
+-  **`query`** nullable value must be a non-blank string.
 
-*  **`exclude_ids`** nullable function
+-  **`exclude_ids`** nullable function.
 
 ## `GET /api/card/:id/timelines`
 
@@ -109,13 +109,13 @@ Get the timelines for card with ID. Looks up the collection the card is in and u
 
 ### PARAMS:
 
-*  **`id`** value must be an integer greater than zero.
+-  **`id`** value must be an integer greater than zero.
 
-*  **`include`** nullable must equal events
+-  **`include`** nullable must equal events.
 
-*  **`start`** nullable value must be a valid date string
+-  **`start`** nullable value must be a valid date string.
 
-*  **`end`** nullable value must be a valid date string
+-  **`end`** nullable value must be a valid date string.
 
 ## `GET /api/card/embeddable`
 
@@ -132,27 +132,31 @@ Create a new `Card`.
 
 ### PARAMS:
 
-*  **`visualization_settings`** value must be a map.
+-  **`visualization_settings`** Value must be a map.
 
-*  **`parameters`** value may be nil, or if non-nil, value must be an array. Each parameter must be a map with :id and :type keys
+-  **`parameters`** nullable sequence of parameter must be a map with :id and :type keys.
 
-*  **`description`** value may be nil, or if non-nil, value must be a non-blank string.
+-  **`dataset`** nullable boolean.
 
-*  **`collection_position`** value may be nil, or if non-nil, value must be an integer greater than zero.
+-  **`description`** nullable value must be a non-blank string.
 
-*  **`result_metadata`** value may be nil, or if non-nil, value must be an array of valid results column metadata maps.
+-  **`collection_position`** nullable value must be an integer greater than zero.
 
-*  **`collection_id`** value may be nil, or if non-nil, value must be an integer greater than zero.
+-  **`result_metadata`** nullable :metabase.sync.analyze.query-results/ResultsMetadata.
 
-*  **`name`** value must be a non-blank string.
+-  **`collection_id`** nullable value must be an integer greater than zero.
 
-*  **`cache_ttl`** value may be nil, or if non-nil, value must be an integer greater than zero.
+-  **`name`** value must be a non-blank string.
 
-*  **`dataset_query`** value must be a map.
+-  **`type`** nullable enum of model, question.
 
-*  **`parameter_mappings`** value may be nil, or if non-nil, value must be an array. Each parameter_mapping must be a map with :parameter_id and :target keys
+-  **`cache_ttl`** nullable value must be an integer greater than zero.
 
-*  **`display`** value must be a non-blank string.
+-  **`dataset_query`** Value must be a map.
+
+-  **`parameter_mappings`** nullable sequence of parameter_mapping must be a map with :parameter_id and :target keys.
+
+-  **`display`** value must be a non-blank string.
 
 ## `POST /api/card/:card-id/persist`
 
@@ -161,7 +165,7 @@ Mark the model (card) as persisted. Runs the query and saves it to the database 
 
 ### PARAMS:
 
-*  **`card-id`** value must be an integer greater than zero.
+-  **`card-id`** value must be an integer greater than zero.
 
 ## `POST /api/card/:card-id/public_link`
 
@@ -171,7 +175,7 @@ Generate publicly-accessible links for this Card. Returns UUID to be used in pub
 
 ### PARAMS:
 
-*  **`card-id`** value must be an integer greater than zero.
+-  **`card-id`** value must be an integer greater than zero.
 
 ## `POST /api/card/:card-id/query`
 
@@ -179,15 +183,15 @@ Run the query associated with a Card.
 
 ### PARAMS:
 
-*  **`card-id`** value must be an integer greater than zero.
+-  **`card-id`** value must be an integer greater than zero.
 
-*  **`parameters`** 
+-  **`parameters`** 
 
-*  **`ignore_cache`** nullable boolean
+-  **`ignore_cache`** nullable boolean.
 
-*  **`dashboard_id`** nullable value must be an integer greater than zero.
+-  **`dashboard_id`** nullable value must be an integer greater than zero.
 
-*  **`collection_preview`** nullable boolean
+-  **`collection_preview`** nullable boolean.
 
 ## `POST /api/card/:card-id/query/:export-format`
 
@@ -198,11 +202,11 @@ Run the query associated with a Card, and return its results as a file in the sp
 
 ### PARAMS:
 
-*  **`card-id`** value must be an integer greater than zero.
+-  **`card-id`** value must be an integer greater than zero.
 
-*  **`export-format`** enum of csv, api, xlsx, json
+-  **`export-format`** enum of csv, api, xlsx, json.
 
-*  **`parameters`** nullable value must be a valid JSON string.
+-  **`parameters`** nullable value must be a valid JSON string.
 
 ## `POST /api/card/:card-id/refresh`
 
@@ -210,7 +214,7 @@ Refresh the persisted model caching `card-id`.
 
 ### PARAMS:
 
-*  **`card-id`** value must be an integer greater than zero.
+-  **`card-id`** value must be an integer greater than zero.
 
 ## `POST /api/card/:card-id/unpersist`
 
@@ -219,7 +223,7 @@ Unpersist this model. Deletes the persisted table backing the model and all quer
 
 ### PARAMS:
 
-*  **`card-id`** value must be an integer greater than zero.
+-  **`card-id`** value must be an integer greater than zero.
 
 ## `POST /api/card/:id/copy`
 
@@ -227,18 +231,18 @@ Copy a `Card`, with the new name 'Copy of _name_'.
 
 ### PARAMS:
 
-*  **`id`** nullable value must be an integer greater than zero.
+-  **`id`** nullable value must be an integer greater than zero.
 
 ## `POST /api/card/collections`
 
-Bulk update endpoint for Card Collections. Move a set of `Cards` with CARD_IDS into a `Collection` with
-  COLLECTION_ID, or remove them from any Collections by passing a `null` COLLECTION_ID.
+Bulk update endpoint for Card Collections. Move a set of `Cards` with `card_ids` into a `Collection` with
+  `collection_id`, or remove them from any Collections by passing a `null` `collection_id`.
 
 ### PARAMS:
 
-*  **`card_ids`** value must be an array. Each value must be an integer greater than zero.
+-  **`card_ids`** sequence of value must be an integer greater than zero.
 
-*  **`collection_id`** value may be nil, or if non-nil, value must be an integer greater than zero.
+-  **`collection_id`** nullable value must be an integer greater than zero.
 
 ## `POST /api/card/from-csv`
 
@@ -246,7 +250,7 @@ Create a table and model populated with the values from the attached CSV. Return
 
 ### PARAMS:
 
-*  **`raw-params`**
+-  **`raw-params`**
 
 ## `POST /api/card/pivot/:card-id/query`
 
@@ -254,11 +258,11 @@ Run the query associated with a Card.
 
 ### PARAMS:
 
-*  **`card-id`** value must be an integer greater than zero.
+-  **`card-id`** value must be an integer greater than zero.
 
-*  **`parameters`** 
+-  **`parameters`** 
 
-*  **`ignore_cache`** nullable boolean
+-  **`ignore_cache`** nullable boolean.
 
 ## `POST /api/card/related`
 
@@ -266,7 +270,7 @@ Return related entities for an ad-hoc query.
 
 ### PARAMS:
 
-*  **`query`**
+-  **`query`**
 
 ## `PUT /api/card/:id`
 
@@ -274,39 +278,41 @@ Update a `Card`.
 
 ### PARAMS:
 
-*  **`collection_preview`** value may be nil, or if non-nil, value must be a boolean.
+-  **`collection_preview`** nullable boolean.
 
-*  **`visualization_settings`** value may be nil, or if non-nil, value must be a map.
+-  **`visualization_settings`** nullable Value must be a map.
 
-*  **`parameters`** value may be nil, or if non-nil, value must be an array. Each parameter must be a map with :id and :type keys
+-  **`parameters`** nullable sequence of parameter must be a map with :id and :type keys.
 
-*  **`dataset`** value may be nil, or if non-nil, value must be a boolean.
+-  **`dataset`** nullable boolean.
 
-*  **`description`** value may be nil, or if non-nil, value must be a string.
+-  **`description`** nullable string.
 
-*  **`archived`** value may be nil, or if non-nil, value must be a boolean.
+-  **`archived`** nullable boolean.
 
-*  **`collection_position`** value may be nil, or if non-nil, value must be an integer greater than zero.
+-  **`collection_position`** nullable value must be an integer greater than zero.
 
-*  **`result_metadata`** value may be nil, or if non-nil, value must be an array of valid results column metadata maps.
+-  **`result_metadata`** nullable :metabase.sync.analyze.query-results/ResultsMetadata.
 
-*  **`enable_embedding`** value may be nil, or if non-nil, value must be a boolean.
+-  **`enable_embedding`** nullable boolean.
 
-*  **`collection_id`** value may be nil, or if non-nil, value must be an integer greater than zero.
+-  **`collection_id`** nullable value must be an integer greater than zero.
 
-*  **`card-updates`** 
+-  **`card-updates`** 
 
-*  **`name`** value may be nil, or if non-nil, value must be a non-blank string.
+-  **`name`** nullable value must be a non-blank string.
 
-*  **`embedding_params`** value may be nil, or if non-nil, value must be a valid embedding params map.
+-  **`type`** nullable enum of model, question.
 
-*  **`cache_ttl`** value may be nil, or if non-nil, value must be an integer greater than zero.
+-  **`embedding_params`** nullable value must be a valid embedding params map.
 
-*  **`dataset_query`** value may be nil, or if non-nil, value must be a map.
+-  **`cache_ttl`** nullable value must be an integer greater than zero.
 
-*  **`id`** 
+-  **`dataset_query`** nullable Value must be a map.
 
-*  **`display`** value may be nil, or if non-nil, value must be a non-blank string.
+-  **`id`** value must be an integer greater than zero.
+
+-  **`display`** nullable value must be a non-blank string.
 
 ---
 

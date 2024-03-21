@@ -1,6 +1,6 @@
+import userEvent from "@testing-library/user-event";
 import fetchMock from "fetch-mock";
 
-import userEvent from "@testing-library/user-event";
 import { createMockMetadata } from "__support__/metadata";
 import {
   setupActionsEndpoints,
@@ -15,6 +15,7 @@ import {
   within,
 } from "__support__/ui";
 import { getNextId } from "__support__/utils";
+import { checkNotNull } from "metabase/lib/types";
 import type { WritebackAction } from "metabase-types/api";
 import {
   createMockCard,
@@ -29,7 +30,7 @@ import {
   PEOPLE_ID,
   createSampleDatabase,
 } from "metabase-types/api/mocks/presets";
-import { checkNotNull } from "metabase/lib/types";
+
 import { ObjectDetailView } from "./ObjectDetailView";
 import type { ObjectDetailProps } from "./types";
 
@@ -503,7 +504,7 @@ describe("ObjectDetailView", () => {
 async function findActionInActionMenu({ name }: Pick<WritebackAction, "name">) {
   const actionsMenu = await screen.findByTestId("actions-menu");
   userEvent.click(actionsMenu);
-  const popover = await screen.findByTestId("popover");
+  const popover = await screen.findByRole("dialog");
   const action = within(popover).queryByText(name);
   return action;
 }

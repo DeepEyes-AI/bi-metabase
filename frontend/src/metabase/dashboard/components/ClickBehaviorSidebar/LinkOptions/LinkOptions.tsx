@@ -1,23 +1,24 @@
 import { useCallback } from "react";
 import { t } from "ttag";
 
+import { isTableDisplay } from "metabase/lib/click-behavior";
+import type { IconName } from "metabase/ui";
+import type { UiParameter } from "metabase-lib/parameters/types";
 import type {
-  DashboardCard,
+  QuestionDashboardCard,
   ArbitraryCustomDestinationClickBehavior,
   ClickBehavior,
   CustomDestinationClickBehavior,
   CustomDestinationClickBehaviorLinkType,
 } from "metabase-types/api";
-import { isTableDisplay } from "metabase/lib/click-behavior";
-import type { IconName } from "metabase/core/components/Icon";
-import type { UiParameter } from "metabase-lib/parameters/types";
-import { SidebarContent } from "../ClickBehaviorSidebar.styled";
-import CustomLinkText from "./CustomLinkText";
-import LinkedEntityPicker from "./LinkedEntityPicker";
 
-import CustomURLPicker from "./CustomURLPicker";
-import LinkOption from "./LinkOption";
-import ValuesYouCanReference from "./ValuesYouCanReference";
+import { SidebarContent } from "../ClickBehaviorSidebar.styled";
+
+import { CustomLinkText } from "./CustomLinkText";
+import { CustomURLPicker } from "./CustomURLPicker";
+import { LinkOption } from "./LinkOption";
+import { LinkedEntityPicker } from "./LinkedEntityPicker/LinkedEntityPicker";
+import { ValuesYouCanReference } from "./ValuesYouCanReference";
 
 type LinkTypeOption = {
   type: CustomDestinationClickBehaviorLinkType;
@@ -51,12 +52,12 @@ function LinkTypeOptions({
 
 interface Props {
   clickBehavior: CustomDestinationClickBehavior;
-  dashcard: DashboardCard;
+  dashcard: QuestionDashboardCard;
   parameters: UiParameter[];
   updateSettings: (settings: Partial<ClickBehavior>) => void;
 }
 
-function LinkOptions({
+export function LinkOptions({
   clickBehavior,
   dashcard,
   parameters,
@@ -112,6 +113,3 @@ function LinkOptions({
     </SidebarContent>
   );
 }
-
-// eslint-disable-next-line import/no-default-export -- deprecated usage
-export default LinkOptions;

@@ -1,27 +1,43 @@
-import { restore } from "e2e/support/helpers";
+import { SAMPLE_DATABASE } from "e2e/support/cypress_sample_database";
+import {
+  describeWithSnowplow,
+  enableTracking,
+  expectGoodSnowplowEvent,
+  expectNoBadSnowplowEvents,
+  resetSnowplow,
+  restore,
+} from "e2e/support/helpers";
 
-describe("scenarios > browse data", () => {
+const { PRODUCTS_ID } = SAMPLE_DATABASE;
+
+describeWithSnowplow("scenarios > browse data", () => {
   beforeEach(() => {
+    resetSnowplow();
     restore();
     cy.signInAsAdmin();
+    enableTracking();
   });
-
-  it("basic UI flow should work", () => {
+  it("can browse to a table", () => {
     cy.visit("/");
-    // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
-    cy.findByText(/Browse data/).click();
-    cy.location("pathname").should("eq", "/browse");
-    // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
-    cy.findByText(/^Our data$/i);
-    // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
-    cy.findByText("Learn about our data").click();
+    cy.findByRole("listitem", { name: "Browse data" }).click();
+    cy.findByRole("heading", { name: "Sample Database" }).click();
+    cy.findByRole("heading", { name: "Products" }).click();
+    cy.findByRole("button", { name: "Summarize" });
+    cy.findByRole("link", { name: /Sample Database/ }).click();
+    expectNoBadSnowplowEvents();
+    expectGoodSnowplowEvent({
+      event: "browse_data_table_clicked",
+      table_id: PRODUCTS_ID,
+    });
+  });
+  it("can visit 'Learn about our data' page", () => {
+    cy.visit("/");
+    cy.findByRole("listitem", { name: "Browse data" }).click();
+    cy.findByRole("link", { name: /Learn about our data/ }).click();
     cy.location("pathname").should("eq", "/reference/databases");
     cy.go("back");
-    // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
-    cy.findByText("Sample Database").click();
-    // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
-    cy.findByText("Products").click();
-    // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
-    cy.findByText("Rustic Paper Wallet");
+    cy.findByRole("heading", { name: "Sample Database" }).click();
+    cy.findByRole("heading", { name: "Products" }).click();
+    cy.findByRole("gridcell", { name: "Rustic Paper Wallet" });
   });
 });

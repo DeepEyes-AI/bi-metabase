@@ -1,10 +1,11 @@
+import { setupGroupsEndpoint } from "__support__/server-mocks";
 import { screen } from "__support__/ui";
 import {
   createMockGroup,
   createMockSettings,
   createMockTokenFeatures,
 } from "metabase-types/api/mocks";
-import { setupGroupsEndpoint } from "__support__/server-mocks";
+
 import type { SetupOpts } from "./setup";
 import { setup } from "./setup";
 
@@ -38,7 +39,7 @@ describe("SettingsEditorApp", () => {
 
     expect(await screen.findByText("Server Settings")).toBeInTheDocument();
     expect(
-      await screen.findByText("JWT Identity Provider URI"),
+      await screen.findByText(/JWT Identity Provider URI/),
     ).toBeInTheDocument();
   });
 

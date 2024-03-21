@@ -1,39 +1,34 @@
 /* eslint-disable react/prop-types */
 import { useEffect, useState, useCallback } from "react";
-import _ from "underscore";
-import { connect } from "react-redux";
 import { useDropzone } from "react-dropzone";
-
-import { usePrevious, useMount } from "react-use";
-import Bookmark from "metabase/entities/bookmarks";
-import Collection from "metabase/entities/collections";
-import Search from "metabase/entities/search";
-
-import { getUserIsAdmin } from "metabase/selectors/user";
-import { getIsBookmarked } from "metabase/collections/selectors";
-import { getSetting } from "metabase/selectors/settings";
-import { openNavbar } from "metabase/redux/app";
-import { getIsNavbarOpen } from "metabase/selectors/app";
+import { connect } from "react-redux";
+import { usePrevious } from "react-use";
+import _ from "underscore";
 
 import ErrorBoundary from "metabase/ErrorBoundary";
 import BulkActions from "metabase/collections/components/BulkActions";
 import CollectionEmptyState from "metabase/collections/components/CollectionEmptyState";
-import Header from "metabase/collections/containers/CollectionHeader";
 import ItemsTable from "metabase/collections/components/ItemsTable";
 import PinnedItemOverview from "metabase/collections/components/PinnedItemOverview";
+import Header from "metabase/collections/containers/CollectionHeader";
+import { getIsBookmarked } from "metabase/collections/selectors";
 import { isPersonalCollectionChild } from "metabase/collections/utils";
-import { uploadFile } from "metabase/redux/uploads";
-
-import ItemsDragLayer from "metabase/containers/dnd/ItemsDragLayer";
 import PaginationControls from "metabase/components/PaginationControls";
-
-import { usePagination } from "metabase/hooks/use-pagination";
-import { useListSelect } from "metabase/hooks/use-list-select";
-import { isSmallScreen } from "metabase/lib/dom";
+import ItemsDragLayer from "metabase/containers/dnd/ItemsDragLayer";
+import Bookmark from "metabase/entities/bookmarks";
+import Collection from "metabase/entities/collections";
 import Databases from "metabase/entities/databases";
+import Search from "metabase/entities/search";
+import { useListSelect } from "metabase/hooks/use-list-select";
+import { usePagination } from "metabase/hooks/use-pagination";
+import { useToggle } from "metabase/hooks/use-toggle";
+import { uploadFile } from "metabase/redux/uploads";
+import { getIsNavbarOpen } from "metabase/selectors/app";
+import { getSetting } from "metabase/selectors/settings";
+import { getUserIsAdmin } from "metabase/selectors/user";
 
+import { ModelUploadModal } from "../components/ModelUploadModal";
 import UploadOverlay from "../components/UploadOverlay";
-import { getComposedDragProps } from "./utils";
 
 import {
   CollectionEmptyContent,
@@ -41,6 +36,7 @@ import {
   CollectionRoot,
   CollectionTable,
 } from "./CollectionContent.styled";
+import { getComposedDragProps } from "./utils";
 
 const PAGE_SIZE = 25;
 
@@ -76,7 +72,6 @@ function mapStateToProps(state, props) {
 }
 
 const mapDispatchToProps = {
-  openNavbar,
   createBookmark: (id, type) => Bookmark.actions.create({ id, type }),
   deleteBookmark: (id, type) => Bookmark.actions.delete({ id, type }),
   uploadFile,
@@ -92,7 +87,6 @@ function CollectionContent({
   deleteBookmark,
   isAdmin,
   isNavbarOpen,
-  openNavbar,
   uploadFile,
   uploadsEnabled,
   canUploadToDb,
@@ -104,17 +98,33 @@ function CollectionContent({
     sort_column: "name",
     sort_direction: "asc",
   });
+
+  const [
+    isModelUploadModalOpen,
+    { turnOn: openModelUploadModal, turnOff: closeModelUploadModal },
+  ] = useToggle(false);
+  const [uploadedFile, setUploadedFile] = useState(null);
+
+  const saveFile = file => {
+    setUploadedFile(file);
+    openModelUploadModal();
+  };
+
+  const handleUploadFile = useCallback(
+    ({ collectionId, tableId, modelId }) => {
+      if (uploadedFile && (collectionId || tableId)) {
+        closeModelUploadModal();
+        uploadFile({ file: uploadedFile, collectionId, tableId, modelId });
+      }
+    },
+    [uploadFile, uploadedFile, closeModelUploadModal],
+  );
+
   const { handleNextPage, handlePreviousPage, setPage, page, resetPage } =
     usePagination();
   const { clear, getIsSelected, selected, selectOnlyTheseItems, toggleItem } =
     useListSelect(itemKeyFn);
   const previousCollection = usePrevious(collection);
-
-  useMount(() => {
-    if (!isSmallScreen()) {
-      openNavbar();
-    }
-  });
 
   useEffect(() => {
     if (previousCollection && previousCollection.id !== collection.id) {
@@ -132,12 +142,9 @@ function CollectionContent({
     setIsBookmarked(shouldBeBookmarked);
   }, [bookmarks, collectionId]);
 
-  const onDrop = useCallback(
-    acceptedFiles => {
-      uploadFile(acceptedFiles[0], collectionId);
-    },
-    [collectionId, uploadFile],
-  );
+  const onDrop = acceptedFiles => {
+    saveFile(acceptedFiles[0]);
+  };
 
   const { getRootProps, isDragActive } = useDropzone({
     onDrop,
@@ -238,10 +245,18 @@ function CollectionContent({
         return (
           <CollectionRoot {...dropzoneProps}>
             {canUpload && (
-              <UploadOverlay
-                isDragActive={isDragActive}
-                collection={collection}
-              />
+              <>
+                <ModelUploadModal
+                  collectionId={collectionId}
+                  opened={isModelUploadModalOpen}
+                  onClose={closeModelUploadModal}
+                  onUpload={handleUploadFile}
+                />
+                <UploadOverlay
+                  isDragActive={isDragActive}
+                  collection={collection}
+                />
+              </>
             )}
             <CollectionMain>
               <ErrorBoundary>
@@ -257,6 +272,7 @@ function CollectionContent({
                   onDeleteBookmark={handleDeleteBookmark}
                   canUpload={canUpload}
                   uploadsEnabled={uploadsEnabled}
+                  saveFile={saveFile}
                 />
               </ErrorBoundary>
               <ErrorBoundary>

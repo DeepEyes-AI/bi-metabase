@@ -1,3 +1,4 @@
+import PropTypes from "prop-types";
 import {
   memo,
   Fragment,
@@ -7,32 +8,29 @@ import {
   useRef,
   useState,
 } from "react";
-import PropTypes from "prop-types";
+import { usePrevious } from "react-use";
 import { t } from "ttag";
 import _ from "underscore";
-import { usePrevious } from "react-use";
 
+import RootForm from "metabase/containers/FormikForm";
 import Radio from "metabase/core/components/Radio";
-
+import { ModelIndexes } from "metabase/entities/model-indexes";
 import {
   field_visibility_types,
   field_semantic_types,
 } from "metabase/lib/core";
 import { getSemanticTypeIcon } from "metabase/lib/schema_metadata";
-import RootForm from "metabase/containers/FormikForm";
-
 import SidebarContent from "metabase/query_builder/components/SidebarContent";
 import ColumnSettings, {
   hasColumnSettingsWidgets,
 } from "metabase/visualizations/components/ColumnSettings";
 import { getGlobalSettingsForColumn } from "metabase/visualizations/lib/settings/column";
-import { ModelIndexes } from "metabase/entities/model-indexes";
+import * as Lib from "metabase-lib";
 import { isSameField } from "metabase-lib/queries/utils/field-ref";
 import { isFK } from "metabase-lib/types/utils/isa";
 
 import { EDITOR_TAB_INDEXES } from "../constants";
-import MappedFieldPicker from "./MappedFieldPicker";
-import SemanticTypePicker, { FKTargetPicker } from "./SemanticTypePicker";
+
 import {
   MainFormContainer,
   SecondaryFormContainer,
@@ -40,6 +38,8 @@ import {
   ViewAsFieldContainer,
   Divider,
 } from "./DatasetFieldMetadataSidebar.styled";
+import MappedFieldPicker from "./MappedFieldPicker";
+import SemanticTypePicker, { FKTargetPicker } from "./SemanticTypePicker";
 
 const propTypes = {
   dataset: PropTypes.object.isRequired,
@@ -82,6 +82,8 @@ function getFormFields({ dataset, field }) {
   const canIndex =
     dataset.isSaved() && ModelIndexes.utils.canIndexField(field, dataset);
 
+  const { isNative } = Lib.queryDisplayInfo(dataset.query());
+
   return formFieldValues =>
     [
       {
@@ -95,7 +97,7 @@ function getFormFields({ dataset, field }) {
         placeholder: t`It’s optional, but oh, so helpful`,
         type: "text",
       },
-      dataset.isNative() && {
+      isNative && {
         name: "id",
         title: t`Database column this maps to`,
         widget: MappedFieldPicker,
@@ -178,7 +180,9 @@ function DatasetFieldMetadataSidebar({
       visibility_type: field.visibility_type || "normal",
       should_index: ModelIndexes.utils.fieldHasIndex(modelIndexes, field),
     };
-    if (dataset.isNative()) {
+    const { isNative } = Lib.queryDisplayInfo(dataset.query());
+
+    if (isNative) {
       values.id = field.id;
     }
     return values;
@@ -308,6 +312,8 @@ function DatasetFieldMetadataSidebar({
     [onFieldMetadataChange],
   );
 
+  const { isNative } = Lib.queryDisplayInfo(dataset.query());
+
   return (
     <SidebarContent>
       <RootForm
@@ -329,7 +335,7 @@ function DatasetFieldMetadataSidebar({
                 onChange={onDescriptionChange}
                 tabIndex={EDITOR_TAB_INDEXES.ESSENTIAL_FORM_FIELD}
               />
-              {dataset.isNative() && (
+              {isNative && (
                 <FormField
                   name="id"
                   tableId={field.table_id}

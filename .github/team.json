@@ -1,44 +1,39 @@
 {
   "teams": [
     {
-      "name": "Query",
-      "label": ".Team/Query",
+      "name": "Querying Components",
+      "label": ".Team/QueryingComponents",
       "members": [
         "ranquild",
         "uladzimirdev",
-        "kamilmielnik"
+        "kamilmielnik",
+        "oleggromov",
+        "nemanjaglumac",
+        "romeovs"
       ]
     },
     {
       "name": "Embedding",
       "label": ".Team/Embedding",
-      "members": [
-        "WiNloSt",
-        "deniskaber",
-        "oisincoveney",
-        "npretto"
-      ]
+      "members": ["WiNloSt", "deniskaber", "oisincoveney", "npretto"]
     },
     {
       "name": "BEC",
       "label": ".Team/BackendComponents",
+      "projectUrl": "https://github.com/orgs/metabase/projects/50/views/1",
       "members": [
         "tsmacdonald",
         "qnkhuat",
         "calherries",
-        "piranha"
+        "piranha",
+        "crisptrutski"
       ]
     },
     {
       "name": "Query Processor",
       "label": ".Team/QueryProcessor",
-      "members": [
-        "camsaul",
-        "snoe",
-        "bshepherdson",
-        "metamben",
-        "lbrdnk"
-      ]
+      "projectUrl": "https://github.com/orgs/metabase/projects/50/views/1",
+      "members": ["camsaul", "snoe", "bshepherdson", "metamben", "lbrdnk"]
     },
     {
       "name": "Admin Webapp",
@@ -50,7 +45,9 @@
         "iethree",
         "npfitz",
         "shaunlebron",
-        "johnswanson"
+        "johnswanson",
+        "rafpaf",
+        "sloansparger"
       ]
     },
     {

@@ -1,5 +1,7 @@
 import { getSetting, getSettings } from "metabase/selectors/settings";
+
 import { LOADING_MESSAGE_BY_SETTING } from "../whitelabel/lib/loading-message";
+
 import type { EnterpriseSettings, EnterpriseState } from "./types";
 
 const DEFAULT_LOGO_URL = "app/assets/img/logo.svg";
@@ -15,9 +17,18 @@ const getCustomLogoUrl = (settingValues: EnterpriseSettings) => {
 export const getLogoUrl = (state: EnterpriseState) =>
   getCustomLogoUrl(getSettings(state));
 
-export const getLoadingMessage = (state: EnterpriseState) =>
-  LOADING_MESSAGE_BY_SETTING[getSetting(state, "loading-message")];
+export const getLoadingMessage = (state: EnterpriseState) => {
+  return LOADING_MESSAGE_BY_SETTING[getSetting(state, "loading-message")].value;
+};
 
 const DEFAULT_APPLICATION_NAME = "Metabase";
-export const getIsWhiteLabeling = (states: EnterpriseState) =>
-  getSetting(states, "application-name") !== DEFAULT_APPLICATION_NAME;
+export const getIsWhiteLabeling = (state: EnterpriseState) =>
+  getApplicationName(state) !== DEFAULT_APPLICATION_NAME;
+
+export function getApplicationName(state: EnterpriseState) {
+  return getSetting(state, "application-name");
+}
+
+export function getShowMetabaseLinks(state: EnterpriseState) {
+  return getSetting(state, "show-metabase-links");
+}

@@ -1,13 +1,13 @@
 import userEvent from "@testing-library/user-event";
 
+import { setupSchemaEndpoints } from "__support__/server-mocks";
+import { createMockEntitiesState } from "__support__/store";
+import { renderWithProviders, screen, waitFor } from "__support__/ui";
 import { checkNotNull } from "metabase/lib/types";
 import { getMetadata } from "metabase/selectors/metadata";
 import type { Database } from "metabase-types/api";
 import { createMockDatabase, createMockTable } from "metabase-types/api/mocks";
 import { createMockState } from "metabase-types/store/mocks";
-import { createMockEntitiesState } from "__support__/store";
-import { renderWithProviders, screen, waitFor } from "__support__/ui";
-import { setupSchemaEndpoints } from "__support__/server-mocks";
 
 import type { UploadSettings } from "./UploadSettings";
 import { UploadSettingsView } from "./UploadSettings";
@@ -553,5 +553,16 @@ describe("Admin > Settings > UploadSetting", () => {
         screen.getByRole("button", { name: "Update settings" }),
       ).toBeInTheDocument();
     });
+  });
+
+  it("should show a warning for h2 databases", async () => {
+    setup();
+    userEvent.click(await screen.findByText("Select a database"));
+
+    userEvent.click(await screen.findByText("Db Cinco")); // h2
+
+    expect(
+      screen.getByText(/uploads to the Sample Database are for testing only/i),
+    ).toBeInTheDocument();
   });
 });

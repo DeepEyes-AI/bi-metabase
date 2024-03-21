@@ -1,5 +1,6 @@
 import { css } from "@emotion/react";
 import styled from "@emotion/styled";
+
 import { color } from "metabase/lib/colors";
 import {
   breakpointMinExtraLarge,
@@ -7,7 +8,7 @@ import {
 } from "metabase/styled-components/theme";
 
 const DEFAULT_CONTAINER_PADDING_SIZE = "0.75rem";
-const SMALL_CONTAINER_PADDING_SIZE = "0.4rem";
+const SMALL_CONTAINER_PADDING_SIZE = "0.3rem";
 
 interface TextCardWrapperProps {
   isSingleRow: boolean;
@@ -52,8 +53,11 @@ interface EditModeProps {
   isMobile: boolean;
 }
 export const EditModeContainer = styled(TextCardWrapper)<EditModeProps>`
-  pointer-events: auto;
   border-radius: 8px;
+  pointer-events: all;
+  * {
+    pointer-events: all;
+  }
 
   .DashCard:hover &,
   .DashCard:focus-within & {
@@ -178,7 +182,6 @@ export const ReactMarkdownStyleWrapper = styled.div`
   }
 
   .text-card-markdown h1 {
-    font-weight: 900;
     font-size: 1.831em;
   }
   .text-card-markdown h2 {

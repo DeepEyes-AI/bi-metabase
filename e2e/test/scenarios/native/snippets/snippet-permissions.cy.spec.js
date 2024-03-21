@@ -1,3 +1,4 @@
+import { USER_GROUPS } from "e2e/support/cypress_data";
 import {
   restore,
   modal,
@@ -8,8 +9,6 @@ import {
   setTokenFeatures,
   isOSS,
 } from "e2e/support/helpers";
-
-import { USER_GROUPS } from "e2e/support/cypress_data";
 
 const { ALL_USERS_GROUP } = USER_GROUPS;
 
@@ -48,8 +47,7 @@ describeEE("scenarios > question > snippets (EE)", () => {
 
       openNativeEditor();
       cy.icon("snippet").click();
-      // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
-      cy.contains("Create a snippet").click();
+      cy.findByTestId("sidebar-content").findByText("Create a snippet").click();
 
       modal().within(() => {
         cy.findByLabelText(

@@ -2,14 +2,21 @@ import type { ReactNode } from "react";
 import { useCallback } from "react";
 import { connect } from "react-redux";
 import { t } from "ttag";
-import * as Urls from "metabase/lib/urls";
-import Fields from "metabase/entities/fields";
+
 import Button from "metabase/core/components/Button/Button";
-import type { DatabaseId, SchemaId, TableId } from "metabase-types/api";
+import Fields from "metabase/entities/fields";
+import * as Urls from "metabase/lib/urls";
 import type Field from "metabase-lib/metadata/Field";
+import type { DatabaseId, SchemaId, TableId } from "metabase-types/api";
+
 import FieldVisibilityPicker from "../FieldVisibilityPicker";
 import SemanticTypeAndTargetPicker from "../SemanticTypeAndTargetPicker";
-import { ColumnInput, FieldSettingsLink } from "./MetadataTableColumn.styled";
+
+import {
+  ColumnContainer,
+  ColumnInput,
+  FieldSettingsLink,
+} from "./MetadataTableColumn.styled";
 
 interface OwnProps {
   field: Field;
@@ -62,8 +69,7 @@ const MetadataTableColumn = ({
   );
 
   return (
-    <section
-      className="py2 pl2 pr1 mt1 mb3 flex bordered rounded"
+    <ColumnContainer
       aria-label={field.name}
       data-testid={`column-${field.name}`}
     >
@@ -124,7 +130,7 @@ const MetadataTableColumn = ({
         </div>
       </div>
       {dragHandle}
-    </section>
+    </ColumnContainer>
   );
 };
 

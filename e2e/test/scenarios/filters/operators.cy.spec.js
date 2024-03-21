@@ -1,6 +1,5 @@
-import { restore, popover, openTable } from "e2e/support/helpers";
-
 import { SAMPLE_DATABASE } from "e2e/support/cypress_sample_database";
+import { restore, popover, openTable } from "e2e/support/helpers";
 
 const { PRODUCTS_ID, PEOPLE_ID } = SAMPLE_DATABASE;
 
@@ -48,10 +47,10 @@ describe("operators in questions", () => {
     },
     excludeDates: {
       expected: [
-        "Days of the week...",
-        "Months of the year...",
-        "Quarters of the year...",
-        "Hours of the day...",
+        "Days of the week…",
+        "Months of the year…",
+        "Quarters of the year…",
+        "Hours of the day…",
         "Is empty",
         "Is not empty",
       ],
@@ -73,10 +72,10 @@ describe("operators in questions", () => {
 
       popover().within(() => {
         cy.findByText("Title").click();
-        cy.findByText("Is").click();
+        cy.findByDisplayValue("Is").click();
       });
 
-      cy.findByTestId("operator-select-list").within(() => {
+      cy.findByRole("listbox").within(() => {
         expected.text.expected.map(e => cy.contains(e).should("exist"));
         expected.text.unexpected.map(e => cy.contains(e).should("not.exist"));
       });
@@ -87,10 +86,10 @@ describe("operators in questions", () => {
 
       popover().within(() => {
         cy.findByText("Price").click();
-        cy.findByText("Equal to").click();
+        cy.findByDisplayValue("Equal to").click();
       });
 
-      cy.findByTestId("operator-select-list").within(() => {
+      cy.findByRole("listbox").within(() => {
         expected.number.expected.map(e => cy.contains(e).should("exist"));
         expected.number.unexpected.map(e => cy.contains(e).should("not.exist"));
       });
@@ -101,7 +100,7 @@ describe("operators in questions", () => {
 
       popover().within(() => {
         cy.findByText("Created At").click();
-        cy.findByText("Relative dates...").click();
+        cy.findByText("Relative dates…").click();
         cy.findByText("Past").click();
       });
 
@@ -126,7 +125,7 @@ describe("operators in questions", () => {
 
       popover().within(() => {
         cy.findByText("Created At").click();
-        cy.findByText("Specific dates...").click();
+        cy.findByText("Specific dates…").click();
         cy.findByText("Between").click();
       });
 
@@ -151,7 +150,7 @@ describe("operators in questions", () => {
 
       popover().within(() => {
         cy.findByText("Created At").click();
-        cy.findByText("Exclude...").click();
+        cy.findByText("Exclude…").click();
       });
 
       popover().within(() => {
@@ -173,10 +172,10 @@ describe("operators in questions", () => {
 
       popover().within(() => {
         cy.findByText("ID").click();
-        cy.findByText("Is").click();
+        cy.findByDisplayValue("Is").click();
       });
 
-      cy.findByTestId("operator-select-list").within(() => {
+      cy.findByRole("listbox").within(() => {
         expected.id.expected.map(e => cy.contains(e).should("exist"));
         expected.id.unexpected.map(e => cy.contains(e).should("not.exist"));
       });
@@ -187,10 +186,10 @@ describe("operators in questions", () => {
 
       popover().within(() => {
         cy.findByText("State").click({ force: true });
-        cy.findByText("Is").click();
+        cy.findByDisplayValue("Is").click();
       });
 
-      cy.findByTestId("operator-select-list").within(() => {
+      cy.findByRole("listbox").within(() => {
         expected.geo.expected.map(e => cy.contains(e).should("exist"));
         expected.geo.unexpected.map(e => cy.contains(e).should("not.exist"));
       });

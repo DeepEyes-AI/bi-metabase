@@ -1,7 +1,28 @@
 import _ from "underscore";
-import { REVIEWS_ID } from "metabase-types/api/mocks/presets";
-import { ordersTable, ordersTotalField } from "./__support__/shared";
-import { aggregationOpts, expressionOpts } from "./__support__/expressions";
+
+import { createMockMetadata } from "__support__/metadata";
+import * as Lib from "metabase-lib";
+import {
+  SAMPLE_DATABASE,
+  SAMPLE_METADATA,
+  createQuery,
+} from "metabase-lib/test-helpers";
+import type { DatasetQuery, Join } from "metabase-types/api";
+import {
+  createSampleDatabase,
+  ORDERS,
+  ORDERS_ID,
+  REVIEWS,
+  REVIEWS_ID,
+} from "metabase-types/api/mocks/presets";
+
+import {
+  aggregationOpts,
+  expressionOpts,
+  metadata,
+  DEFAULT_QUERY,
+} from "./__support__/expressions";
+import { sharedMetadata } from "./__support__/shared";
 import type { Suggestion } from "./suggest";
 import { suggest as suggest_ } from "./suggest";
 
@@ -73,7 +94,19 @@ describe("metabase/lib/expression/suggest", () => {
 
     describe("expression", () => {
       it("should suggest partial matches in expression", () => {
-        expect(suggest({ source: "1 + C", ...expressionOpts })).toEqual([
+        expect(
+          suggest({
+            source: "1 + C",
+            ...expressionOpts,
+            query: createQuery({
+              metadata,
+              query: DEFAULT_QUERY,
+            }),
+            stageIndex: -1,
+            metadata,
+            getColumnIcon: () => "icon",
+          }),
+        ).toEqual([
           { type: "fields", text: "[C] " },
           { type: "fields", text: "[count] " },
           { type: "functions", text: "case(" },
@@ -86,7 +119,19 @@ describe("metabase/lib/expression/suggest", () => {
       });
 
       it("should suggest partial matches in unterminated quoted string", () => {
-        expect(suggest({ source: "1 + [C", ...expressionOpts })).toEqual([
+        expect(
+          suggest({
+            source: "1 + [C",
+            ...expressionOpts,
+            query: createQuery({
+              metadata,
+              query: DEFAULT_QUERY,
+            }),
+            stageIndex: -1,
+            metadata,
+            getColumnIcon: () => "icon",
+          }),
+        ).toEqual([
           { type: "fields", text: "[C] " },
           { type: "fields", text: "[count] " },
         ]);
@@ -96,8 +141,11 @@ describe("metabase/lib/expression/suggest", () => {
         expect(
           suggest({
             source: "User",
-            query: ordersTable.query(),
+            query: createQuery(),
             startRule: "expression",
+            stageIndex: -1,
+            metadata: SAMPLE_METADATA,
+            getColumnIcon: () => "icon",
           }),
         ).toEqual([
           { text: "[User ID] ", type: "fields" },
@@ -118,13 +166,36 @@ describe("metabase/lib/expression/suggest", () => {
       });
 
       it("should suggest joined fields", () => {
+        const JOIN_CLAUSE: Join = {
+          alias: "Foo",
+          "source-table": REVIEWS_ID,
+          condition: [
+            "=",
+            ["field", REVIEWS.PRODUCT_ID, null],
+            ["field", ORDERS.PRODUCT_ID, null],
+          ],
+        };
+        const queryWithJoins: DatasetQuery = {
+          database: SAMPLE_DATABASE.id,
+          type: "query",
+          query: {
+            "source-table": ORDERS_ID,
+            joins: [JOIN_CLAUSE],
+          },
+        };
+
+        const query = createQuery({
+          metadata: sharedMetadata,
+          query: queryWithJoins,
+        });
+
         expect(
           suggest({
             source: "Foo",
-            query: ordersTable.query().join({
-              alias: "Foo",
-              "source-table": REVIEWS_ID,
-            }),
+            query,
+            stageIndex: -1,
+            metadata: sharedMetadata,
+            getColumnIcon: () => "icon",
             startRule: "expression",
           }),
         ).toEqual([
@@ -138,14 +209,31 @@ describe("metabase/lib/expression/suggest", () => {
       });
 
       it("should suggest nested query fields", () => {
+        const datasetQuery: DatasetQuery = {
+          database: SAMPLE_DATABASE.id,
+          type: "query",
+          query: {
+            "source-table": ORDERS_ID,
+            aggregation: [["count"]],
+            breakout: [["field", ORDERS.TOTAL, null]],
+          },
+        };
+
+        const queryWithAggregation = createQuery({
+          metadata: sharedMetadata,
+          query: datasetQuery,
+        });
+
+        const query = Lib.appendStage(queryWithAggregation);
+        const stageIndexAfterNesting = 1;
+
         expect(
           suggest({
             source: "T",
-            query: ordersTable
-              .query()
-              .aggregate(["count"])
-              .breakout(ordersTotalField)
-              .nest(),
+            query,
+            stageIndex: stageIndexAfterNesting,
+            metadata: sharedMetadata,
+            getColumnIcon: () => "icon",
             startRule: "expression",
           }),
         ).toEqual(
@@ -162,8 +250,11 @@ describe("metabase/lib/expression/suggest", () => {
         expect(
           helpText({
             source: "substring(",
-            query: ordersTable.query(),
+            query: createQuery(),
             startRule: "expression",
+            metadata: SAMPLE_METADATA,
+            getColumnIcon: () => "icon",
+            stageIndex: -1,
           }),
         ).toMatchObject({
           structure: "substring",
@@ -176,8 +267,11 @@ describe("metabase/lib/expression/suggest", () => {
         expect(
           helpText({
             source: "lower", // doesn't need to be "lower(" since it's a unique match
-            query: ordersTable.query(),
+            query: createQuery(),
+            metadata: SAMPLE_METADATA,
             startRule: "expression",
+            stageIndex: -1,
+            getColumnIcon: () => "icon",
           }),
         ).toMatchObject({
           structure: "lower",
@@ -186,11 +280,35 @@ describe("metabase/lib/expression/suggest", () => {
         });
       });
 
+      it("should not provide help text for an unsupported function (metabase#39766)", () => {
+        const metadata = createMockMetadata({
+          databases: [
+            createSampleDatabase({
+              features: ["foreign-keys"],
+            }),
+          ],
+        });
+
+        expect(
+          helpText({
+            source: "percentile",
+            query: createQuery(),
+            metadata,
+            startRule: "expression",
+            stageIndex: -1,
+            getColumnIcon: () => "icon",
+          }),
+        ).toBeUndefined();
+      });
+
       it("should provide help text after first argument if there's only one argument", () => {
         expect(
           helpText({
             source: "trim(Total ",
-            query: ordersTable.query(),
+            query: createQuery(),
+            metadata: SAMPLE_METADATA,
+            stageIndex: -1,
+            getColumnIcon: () => "icon",
             startRule: "expression",
           })?.name,
         ).toEqual("trim");
@@ -200,7 +318,10 @@ describe("metabase/lib/expression/suggest", () => {
         expect(
           helpText({
             source: "coalesce(Total ",
-            query: ordersTable.query(),
+            query: createQuery(),
+            metadata: SAMPLE_METADATA,
+            stageIndex: -1,
+            getColumnIcon: () => "icon",
             startRule: "expression",
           })?.name,
         ).toEqual("coalesce");
@@ -209,7 +330,20 @@ describe("metabase/lib/expression/suggest", () => {
 
     describe("aggregation", () => {
       it("should suggest aggregations and metrics", () => {
-        expect(suggest({ source: "case([", ...aggregationOpts })).toEqual(
+        const { startRule } = aggregationOpts;
+        expect(
+          suggest({
+            source: "case([",
+            query: createQuery({
+              metadata,
+              query: DEFAULT_QUERY,
+            }),
+            stageIndex: -1,
+            metadata,
+            getColumnIcon: () => "icon",
+            startRule,
+          }),
+        ).toEqual(
           [
             ...FIELDS_CUSTOM,
             ...METRICS_CUSTOM,
@@ -220,7 +354,19 @@ describe("metabase/lib/expression/suggest", () => {
       });
 
       it("should suggest partial matches after an aggregation", () => {
-        expect(suggest({ source: "average(c", ...aggregationOpts })).toEqual([
+        expect(
+          suggest({
+            source: "average(c",
+            ...aggregationOpts,
+            query: createQuery({
+              metadata,
+              query: DEFAULT_QUERY,
+            }),
+            stageIndex: -1,
+            metadata,
+            getColumnIcon: () => "icon",
+          }),
+        ).toEqual([
           // FIXME: the next four should not appear
           { type: "aggregations", text: "Count " },
           { type: "aggregations", text: "CountIf(" },
@@ -237,7 +383,19 @@ describe("metabase/lib/expression/suggest", () => {
       });
 
       it("should suggest partial matches in aggregation", () => {
-        expect(suggest({ source: "1 + C", ...aggregationOpts })).toEqual([
+        expect(
+          suggest({
+            source: "1 + C",
+            ...aggregationOpts,
+            query: createQuery({
+              metadata,
+              query: DEFAULT_QUERY,
+            }),
+            stageIndex: -1,
+            metadata,
+            getColumnIcon: () => "icon",
+          }),
+        ).toEqual([
           { type: "aggregations", text: "Count " },
           { type: "aggregations", text: "CountIf(" },
           { type: "aggregations", text: "CumulativeCount " },
@@ -256,7 +414,10 @@ describe("metabase/lib/expression/suggest", () => {
         expect(
           suggest({
             source: "to",
-            query: ordersTable.query(),
+            query: createQuery({ metadata: sharedMetadata }),
+            stageIndex: -1,
+            getColumnIcon: () => "icon",
+            metadata: sharedMetadata,
             startRule: "aggregation",
           }),
         ).toEqual([
@@ -269,7 +430,10 @@ describe("metabase/lib/expression/suggest", () => {
         expect(
           suggest({
             source: "cou",
-            query: ordersTable.query(),
+            query: createQuery(),
+            metadata: SAMPLE_METADATA,
+            stageIndex: -1,
+            getColumnIcon: () => "icon",
             startRule: "aggregation",
           }),
         ).toEqual([
@@ -282,7 +446,10 @@ describe("metabase/lib/expression/suggest", () => {
         expect(
           helpText({
             source: "Sum(",
-            query: ordersTable.query(),
+            query: createQuery(),
+            stageIndex: -1,
+            getColumnIcon: () => "icon",
+            metadata: sharedMetadata,
             startRule: "aggregation",
           }),
         ).toMatchObject({ name: "sum", example: "Sum([Subtotal])" });
@@ -294,7 +461,10 @@ describe("metabase/lib/expression/suggest", () => {
         expect(
           suggest({
             source: "c",
-            query: ordersTable.query(),
+            query: createQuery(),
+            metadata: SAMPLE_METADATA,
+            stageIndex: -1,
+            getColumnIcon: () => "icon",
             startRule: "boolean",
           }),
         ).toEqual([
@@ -315,7 +485,10 @@ describe("metabase/lib/expression/suggest", () => {
         expect(
           suggest({
             source: "ca",
-            query: ordersTable.query(),
+            query: createQuery(),
+            metadata: SAMPLE_METADATA,
+            stageIndex: -1,
+            getColumnIcon: () => "icon",
             startRule: "boolean",
           }),
         ).toEqual([
@@ -328,7 +501,10 @@ describe("metabase/lib/expression/suggest", () => {
         expect(
           suggest({
             source: "[",
-            query: ordersTable.query(),
+            query: createQuery({ metadata: sharedMetadata }),
+            stageIndex: -1,
+            getColumnIcon: () => "icon",
+            metadata: sharedMetadata,
             startRule: "boolean",
           }),
         ).toEqual([...FIELDS_ORDERS, ...SEGMENTS_ORDERS].sort(suggestionSort));
@@ -338,7 +514,10 @@ describe("metabase/lib/expression/suggest", () => {
         expect(
           helpText({
             source: "Contains(Total ",
-            query: ordersTable.query(),
+            query: createQuery(),
+            metadata: SAMPLE_METADATA,
+            stageIndex: -1,
+            getColumnIcon: () => "icon",
             startRule: "boolean",
           }),
         ).toMatchObject({

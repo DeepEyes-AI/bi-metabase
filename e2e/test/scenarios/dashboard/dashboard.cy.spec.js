@@ -1,3 +1,10 @@
+import { SAMPLE_DB_ID } from "e2e/support/cypress_data";
+import { SAMPLE_DATABASE } from "e2e/support/cypress_sample_database";
+import {
+  ORDERS_DASHBOARD_DASHCARD_ID,
+  ORDERS_DASHBOARD_ID,
+  ORDERS_QUESTION_ID,
+} from "e2e/support/cypress_sample_instance_data";
 import {
   popover,
   restore,
@@ -29,15 +36,16 @@ import {
   updateDashboardCards,
   getTextCardDetails,
   openDashboardMenu,
+  openEmbedModalFromMenu,
+  assertDashboardFixedWidth,
+  assertDashboardFullWidth,
+  createDashboardWithTabs,
 } from "e2e/support/helpers";
-
-import { SAMPLE_DB_ID } from "e2e/support/cypress_data";
-import { SAMPLE_DATABASE } from "e2e/support/cypress_sample_database";
+import { GRID_WIDTH } from "metabase/lib/dashboard_grid";
 import {
-  ORDERS_DASHBOARD_DASHCARD_ID,
-  ORDERS_DASHBOARD_ID,
-  ORDERS_QUESTION_ID,
-} from "e2e/support/cypress_sample_instance_data";
+  createMockVirtualCard,
+  createMockVirtualDashCard,
+} from "metabase-types/api/mocks";
 
 const { ORDERS, ORDERS_ID, PRODUCTS, PEOPLE, PEOPLE_ID } = SAMPLE_DATABASE;
 
@@ -750,8 +758,8 @@ describe("scenarios > dashboard", () => {
     cy.request("PUT", `/api/dashboard/${ORDERS_DASHBOARD_ID}`, {
       dashcards: [
         {
-          id: 1,
-          card_id: 1,
+          id: ORDERS_DASHBOARD_DASHCARD_ID,
+          card_id: ORDERS_QUESTION_ID,
           row: 0,
           col: 0,
           size_x: 16,
@@ -759,7 +767,7 @@ describe("scenarios > dashboard", () => {
           parameter_mappings: [
             {
               parameter_id: FILTER_ID,
-              card_id: 1,
+              card_id: ORDERS_QUESTION_ID,
               target: [
                 "dimension",
                 [
@@ -873,11 +881,13 @@ describe("scenarios > dashboard", () => {
     // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
     cy.contains("37.65");
     assertScrollBarExists();
-    cy.icon("share").click();
-    cy.get(".Modal--full").within(() => {
+
+    openEmbedModalFromMenu();
+
+    modal().within(() => {
       cy.icon("close").click();
     });
-    cy.get(".Modal--full").should("not.exist");
+    modal().should("not.exist");
     assertScrollBarExists();
   });
 
@@ -976,6 +986,17 @@ describeWithSnowplow("scenarios > dashboard", () => {
     expectNoBadSnowplowEvents();
   });
 
+  it("saving a dashboard should track a 'dashboard_saved' snowplow event", () => {
+    visitDashboard(ORDERS_DASHBOARD_ID);
+    editDashboard();
+    const newTitle = "New title";
+    cy.findByTestId("dashboard-name-heading").clear().type(newTitle).blur();
+    saveDashboard();
+    expectGoodSnowplowEvent({
+      event: "dashboard_saved",
+    });
+  });
+
   it("should allow users to add link cards to dashboards", () => {
     visitDashboard(ORDERS_DASHBOARD_ID);
     editDashboard();
@@ -1027,6 +1048,79 @@ describeWithSnowplow("scenarios > dashboard", () => {
         },
         2,
       );
+    });
+  });
+
+  it("should allow the creator to change the dashboard width to 'fixed' or 'full'", () => {
+    const TAB_1 = {
+      id: 1,
+      name: "Tab 1",
+    };
+    const TAB_2 = {
+      id: 2,
+      name: "Tab 2",
+    };
+    const DASHBOARD_TEXT_FILTER = {
+      id: "94f9e513",
+      name: "Text filter",
+      slug: "filter-text",
+      type: "string/contains",
+    };
+
+    createDashboardWithTabs({
+      tabs: [TAB_1, TAB_2],
+      parameters: [{ ...DASHBOARD_TEXT_FILTER, default: "Example Input" }],
+      dashcards: [
+        createMockVirtualDashCard({
+          id: -1,
+          dashboard_tab_id: TAB_1.id,
+          size_x: GRID_WIDTH,
+          parameter_mappings: [
+            { parameter_id: "94f9e513", target: ["text-tag", "Name"] },
+          ],
+          card: createMockVirtualCard({ display: "text" }),
+          visualization_settings: {
+            text: "Top: {{Name}}",
+          },
+        }),
+        createMockVirtualDashCard({
+          id: -2,
+          size_x: GRID_WIDTH,
+          dashboard_tab_id: TAB_1.id,
+          card: createMockVirtualCard({ display: "text" }),
+          visualization_settings: {
+            text: "Bottom",
+          },
+        }),
+      ],
+    }).then(dashboard => visitDashboard(dashboard.id));
+
+    // new dashboards should default to 'fixed' width
+    assertDashboardFixedWidth();
+
+    // toggle full-width
+    editDashboard();
+    cy.findByLabelText("Toggle width").click();
+    popover().findByText("Full width").click();
+    assertDashboardFullWidth();
+    expectGoodSnowplowEvent({
+      event: "dashboard_width_toggled",
+      full_width: true,
+    });
+
+    // confirm it saves the state after saving and refreshing
+    saveDashboard();
+    cy.reload();
+    assertDashboardFullWidth();
+
+    // toggle back to fixed
+    editDashboard();
+    cy.findByLabelText("Toggle width").click();
+    popover().findByText("Full width").click();
+    assertDashboardFixedWidth();
+    expectGoodSnowplowEvent({
+      event: "dashboard_width_toggled",
+      full_width: false,
     });
   });
 });

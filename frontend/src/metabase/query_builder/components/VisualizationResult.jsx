@@ -1,15 +1,16 @@
 /* eslint-disable react/prop-types */
-import { Component } from "react";
-import { t, jt } from "ttag";
 import cx from "classnames";
+import { Component } from "react";
+import { jt, t } from "ttag";
 import _ from "underscore";
 
-import ErrorMessage from "metabase/components/ErrorMessage";
-import Visualization from "metabase/visualizations/components/Visualization";
-import { CreateAlertModalContent } from "metabase/query_builder/components/AlertModals";
+import { ErrorMessage } from "metabase/components/ErrorMessage";
 import Modal from "metabase/components/Modal";
-import { datasetContainsNoResults } from "metabase-lib/queries/utils/dataset";
+import { CreateAlertModalContent } from "metabase/query_builder/components/AlertModals";
+import Visualization from "metabase/visualizations/components/Visualization";
+import * as Lib from "metabase-lib";
 import { ALERT_TYPE_ROWS } from "metabase-lib/Alert";
+import { datasetContainsNoResults } from "metabase-lib/queries/utils/dataset";
 
 const ALLOWED_VISUALIZATION_PROPS = [
   // Table
@@ -108,7 +109,8 @@ export default class VisualizationResult extends Component {
         this.props,
         ...ALLOWED_VISUALIZATION_PROPS,
       );
-      const hasDrills = this.props.query.isEditable();
+      const { isEditable } = Lib.queryDisplayInfo(question.query());
+      const hasDrills = isEditable;
       return (
         <>
           <Visualization
@@ -134,7 +136,6 @@ export default class VisualizationResult extends Component {
             onUpdateVisualizationSettings={
               this.props.onUpdateVisualizationSettings
             }
-            query={this.props.query}
             {...vizSpecificProps}
           />
           {this.props.isObjectDetail && (

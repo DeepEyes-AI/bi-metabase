@@ -4,7 +4,6 @@
    [clojure.string :as str]
    [clojure.test :refer :all]
    [honey.sql :as sql]
-   [java-time.api :as t]
    [metabase.actions.error :as actions.error]
    [metabase.config :as config]
    [metabase.db.metadata-queries :as metadata-queries]
@@ -15,7 +14,6 @@
    [metabase.driver.sql-jdbc.actions :as sql-jdbc.actions]
    [metabase.driver.sql-jdbc.actions-test :as sql-jdbc.actions-test]
    [metabase.driver.sql-jdbc.connection :as sql-jdbc.conn]
-   [metabase.driver.sql-jdbc.execute :as sql-jdbc.execute]
    [metabase.driver.sql-jdbc.sync :as sql-jdbc.sync]
    [metabase.driver.sql.query-processor :as sql.qp]
    [metabase.models.database :refer [Database]]
@@ -31,15 +29,10 @@
    [metabase.test :as mt]
    [metabase.test.data.interface :as tx]
    [metabase.util :as u]
-   [metabase.util.date-2 :as u.date]
    [metabase.util.honey-sql-2 :as h2x]
-   #_{:clj-kondo/ignore [:discouraged-namespace :deprecated-namespace]}
-   [metabase.util.honeysql-extensions :as hx]
    [metabase.util.log :as log]
    [toucan2.core :as t2]
-   [toucan2.tools.with-temp :as t2.with-temp])
-  (:import
-   (java.sql SQLException)))
+   [toucan2.tools.with-temp :as t2.with-temp]))
 
 (set! *warn-on-reflection* true)
 
@@ -49,8 +42,7 @@
                       ;;
                       ;; 2. Make sure we're in Honey SQL 2 mode for all the little SQL snippets we're compiling in these
                       ;;    tests.
-                      (binding [sync-util/*log-exceptions-and-continue?* false
-                                hx/*honey-sql-version*                   2]
+                      (binding [sync-util/*log-exceptions-and-continue?* false]
                         (thunk))))
 
 (defn drop-if-exists-and-create-db!
@@ -168,13 +160,13 @@
   (mt/test-driver :mysql
     (mt/dataset year-db
       (testing "By default YEAR"
-        (is (= #{{:name "year_column", :base_type :type/Date, :semantic_type nil}
+        (is (= #{{:name "year_column", :base_type :type/Integer, :semantic_type nil}
                  {:name "id", :base_type :type/Integer, :semantic_type :type/PK}}
                (db->fields (mt/db)))))
       (let [table  (t2/select-one Table :db_id (u/id (mt/db)))
             fields (t2/select Field :table_id (u/id table) :name "year_column")]
         (testing "Can select from this table"
-          (is (= [[#t "2001-01-01"] [#t "2002-01-01"] [#t "1999-01-01"]]
+          (is (= [[2001] [2002] [1999]]
                  (metadata-queries/table-rows-sample table fields (constantly conj)))))
         (testing "We can fingerprint this table"
           (is (= 1
@@ -366,29 +358,31 @@
     (testing "can group on TIME columns (#12846)"
       (mt/with-temporary-setting-values [report-timezone "UTC"]
         (mt/dataset attempted-murders
-          (let [now-date-str (u.date/format (t/local-date (t/zone-id "UTC")))
-                add-date-fn  (fn [t] [(str now-date-str "T" t)])]
-            (testing "by minute"
-              (let [query (mt/mbql-query attempts
-                            {:breakout [!minute.time]
-                             :order-by [[:asc !minute.time]]
-                             :limit    3})]
-                (mt/with-native-query-testing-context query
-                  (is (= (map add-date-fn ["00:14:00Z" "00:23:00Z" "00:35:00Z"])
-                         (mt/rows (qp/process-query query)))))))
-            (testing "by hour"
-              (let [query (mt/mbql-query attempts
-                            {:breakout [!hour.time]
-                             :order-by [[:desc !hour.time]]
-                             :limit    3})]
-                (mt/with-native-query-testing-context query
-                  (is (= (map add-date-fn ["23:00:00Z" "20:00:00Z" "19:00:00Z"])
-                         (mt/rows (qp/process-query query)))))))))))))
+          (testing "by minute"
+            (let [query (mt/mbql-query attempts
+                          {:breakout [!minute.time]
+                           :order-by [[:asc !minute.time]]
+                           :limit    3})]
+              (mt/with-native-query-testing-context query
+                (is (= [["00:14:00Z"]
+                        ["00:23:00Z"]
+                        ["00:35:00Z"]]
+                       (mt/rows (qp/process-query query)))))))
+          (testing "by hour"
+            (let [query (mt/mbql-query attempts
+                          {:breakout [!hour.time]
+                           :order-by [[:desc !hour.time]]
+                           :limit    3})]
+              (mt/with-native-query-testing-context query
+                (is (= [["23:00:00Z"]
+                        ["20:00:00Z"]
+                        ["19:00:00Z"]]
+                       (mt/rows (qp/process-query query))))))))))))
 
 (defn- pretty-sql [s]
   (str/replace s #"`" ""))
 
-(deftest do-not-cast-to-date-if-column-is-already-a-date-test
+(deftest ^:parallel do-not-cast-to-date-if-column-is-already-a-date-test
   (testing "Don't wrap Field in date() if it's already a DATE (#11502)"
     (mt/test-driver :mysql
       (mt/dataset attempted-murders
@@ -687,14 +681,6 @@
                                             "test-data"
                                             ["foo" "bar"])))))
 
-(defn- get-db-version [conn-spec]
-  (sql-jdbc.execute/do-with-connection-with-options
-   :mysql
-   conn-spec
-   nil
-   (fn [^java.sql.Connection conn]
-     (#'mysql/db-version (.getMetaData conn)))))
-
 (deftest table-privileges-test
   (mt/test-driver :mysql
     (when-not (mysql/mariadb? (mt/db))
@@ -702,19 +688,16 @@
         (drop-if-exists-and-create-db! "table_privileges_test")
         (let [details          (tx/dbdef->connection-details :mysql :db {:database-name "table_privileges_test"})
               spec             (sql-jdbc.conn/connection-details->spec :mysql details)
-              mysql8-or-above? (<= 8 (get-db-version spec))
               get-privileges   (fn []
                                  (let [new-connection-details (cond-> (assoc details
                                                                              :user "table_privileges_test_user",
-                                                                             :password "password")
-                                                                mysql8-or-above?
-                                                                (assoc :ssl true
-                                                                       :additional-options "trustServerCertificate=true"))]
+                                                                             :password "password"
+                                                                             :ssl true
+                                                                             :additional-options "trustServerCertificate=true"))]
                                    (sql-jdbc.conn/with-connection-spec-for-testing-connection
                                      [spec [:mysql new-connection-details]]
                                      (with-redefs [sql-jdbc.conn/db->pooled-connection-spec (fn [_] spec)]
-                                       (driver/current-user-table-privileges driver/*driver*
-                                                                             (assoc (mt/db) :name "table_privileges_test"))))))]
+                                       (sql-jdbc.sync/current-user-table-privileges driver/*driver* spec {})))))]
           (try
             (doseq [stmt ["CREATE TABLE `bar` (id INTEGER);"
                           "CREATE TABLE `baz` (id INTEGER);"
@@ -735,40 +718,17 @@
               (is (= [{:role nil, :schema nil, :table "bar", :select true, :update true, :insert false, :delete false}
                       {:role nil, :schema nil, :table "baz", :select false, :update true, :insert false, :delete false}]
                      (get-privileges))))
-            (when mysql8-or-above?
-              (testing "should return privileges on roles that the user has been granted"
-                (doseq [stmt ["CREATE ROLE 'table_privileges_test_role'"
-                              (str "GRANT INSERT ON `bar` TO 'table_privileges_test_role'")
-                              "GRANT 'table_privileges_test_role' TO 'table_privileges_test_user'"]]
-                  (jdbc/execute! spec stmt))
-                (is (= [{:role nil, :schema nil, :table "bar", :select true, :update true, :insert true, :delete false}
-                        {:role nil, :schema nil, :table "baz", :select false, :update true, :insert false, :delete false}]
-                       (get-privileges))))
-              (testing "should return privileges for multiple roles that the user has been granted"
-                (doseq [stmt ["CREATE ROLE 'table_privileges_test_role_2'"
-                              (str "GRANT INSERT ON `baz` TO 'table_privileges_test_role_2'")
-                              "GRANT 'table_privileges_test_role_2' TO 'table_privileges_test_user'"]]
-                  (jdbc/execute! spec stmt))
-                (is (= [{:role nil, :schema nil, :table "bar", :select true, :update true, :insert true, :delete false}
-                        {:role nil, :schema nil, :table "baz", :select false, :update true, :insert true, :delete false}]
-                       (get-privileges))))
-              (testing "should return privileges from recursively granted roles"
-                (doseq [stmt ["CREATE ROLE 'table_privileges_test_role_3'"
-                              (str "GRANT DELETE ON `bar` TO 'table_privileges_test_role_3'")
-                              "GRANT 'table_privileges_test_role_3' TO 'table_privileges_test_role'"]]
-                  (try (jdbc/execute! spec stmt)
-                    (catch SQLException e
-                           (log/error "Error executing SQL:")
-                           (log/errorf "Caught SQLException:\n%s\n"
-                                       (with-out-str (jdbc/print-sql-exception-chain e)))
-                           (throw e))))
-                (is (= [{:role nil, :schema nil, :table "bar", :select true, :update true, :insert true, :delete true}
-                        {:role nil, :schema nil, :table "baz", :select false, :update true, :insert true, :delete false}]
-                       (get-privileges)))))
+            (testing "should return privileges on roles that the user has been granted"
+              (doseq [stmt ["CREATE ROLE 'table_privileges_test_role'"
+                            (str "GRANT INSERT ON `bar` TO 'table_privileges_test_role'")
+                            "GRANT 'table_privileges_test_role' TO 'table_privileges_test_user'"]]
+                (jdbc/execute! spec stmt))
+              (is (= [{:role nil, :schema nil, :table "bar", :select true, :update true, :insert true, :delete false}
+                      {:role nil, :schema nil, :table "baz", :select false, :update true, :insert false, :delete false}]
+                     (get-privileges))))
             (finally
               (jdbc/execute! spec "DROP USER IF EXISTS 'table_privileges_test_user';")
-              (when mysql8-or-above?
-                (doseq [stmt ["DROP ROLE IF EXISTS 'table_privileges_test_role';"
-                              "DROP ROLE IF EXISTS 'table_privileges_test_role_2';"
-                              "DROP ROLE IF EXISTS 'table_privileges_test_role_3';"]]
-                  (jdbc/execute! spec stmt))))))))))
+              (doseq [stmt ["DROP ROLE IF EXISTS 'table_privileges_test_role';"
+                            "DROP ROLE IF EXISTS 'table_privileges_test_role_2';"
+                            "DROP ROLE IF EXISTS 'table_privileges_test_role_3';"]]
+                (jdbc/execute! spec stmt)))))))))

@@ -1,5 +1,6 @@
 import { createSelector } from "@reduxjs/toolkit";
 
+import { getPlan } from "metabase/common/utils/plan";
 import type {
   SettingKey,
   Settings,
@@ -7,7 +8,6 @@ import type {
   Version,
 } from "metabase-types/api";
 import type { State } from "metabase-types/store";
-import { getPlan } from "metabase/common/utils/plan";
 
 export const getSettings = createSelector(
   (state: State) => state.settings,
@@ -29,6 +29,7 @@ export const getStoreUrl = (path = "") => {
 };
 
 export const getLearnUrl = (path = "") => {
+  // eslint-disable-next-line no-unconditional-metabase-links-render -- This is the implementation of getLearnUrl()
   return `https://www.metabase.com/learn/${path}`;
 };
 
@@ -78,6 +79,7 @@ export const getDocsUrlForVersion = (
     anchor = `#${anchor}`;
   }
 
+  // eslint-disable-next-line no-unconditional-metabase-links-render -- This function is only used by this file and "metabase/lib/settings"
   return `https://www.metabase.com/docs/${tag}/${page}${anchor}`;
 };
 

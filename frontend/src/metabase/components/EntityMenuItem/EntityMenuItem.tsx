@@ -1,6 +1,8 @@
 import type { MouseEvent, ReactNode } from "react";
+
 import Tooltip from "metabase/core/components/Tooltip";
-import type { IconName } from "metabase/core/components/Icon";
+import type { IconName } from "metabase/ui";
+
 import {
   MenuExternalLink,
   MenuItemContent,
@@ -17,7 +19,6 @@ export interface EntityMenuItemProps {
   externalLink?: boolean;
   tooltip?: ReactNode;
   disabled?: boolean;
-  event?: string;
   onClose?: () => void;
 }
 
@@ -29,7 +30,6 @@ const EntityMenuItem = ({
   externalLink,
   tooltip,
   disabled,
-  event,
   onClose,
 }: EntityMenuItemProps): JSX.Element | null => {
   if (link && action) {
@@ -50,7 +50,6 @@ const EntityMenuItem = ({
         link={link}
         externalLink={externalLink}
         disabled={disabled}
-        event={event}
         tooltip={tooltip}
         onClose={onClose}
         data-testid="entity-menu-link"
@@ -62,12 +61,7 @@ const EntityMenuItem = ({
 
   if (action) {
     return (
-      <ActionMenuItem
-        action={action}
-        tooltip={tooltip}
-        disabled={disabled}
-        event={event}
-      >
+      <ActionMenuItem action={action} tooltip={tooltip} disabled={disabled}>
         {content}
       </ActionMenuItem>
     );
@@ -80,7 +74,6 @@ interface ActionMenuItemProps {
   action?: (event: MouseEvent<HTMLDivElement>) => void;
   tooltip?: ReactNode;
   disabled?: boolean;
-  event?: string;
   children?: ReactNode;
 }
 
@@ -88,13 +81,10 @@ const ActionMenuItem = ({
   action,
   tooltip,
   disabled,
-  event,
   children,
 }: ActionMenuItemProps) => (
   <Tooltip tooltip={tooltip} placement="right">
-    <div onClick={disabled ? undefined : action} data-metabase-event={event}>
-      {children}
-    </div>
+    <div onClick={disabled ? undefined : action}>{children}</div>
   </Tooltip>
 );
 
@@ -103,7 +93,6 @@ interface LinkMenuItemProps {
   externalLink?: boolean;
   tooltip?: ReactNode;
   disabled?: boolean;
-  event?: string;
   children?: ReactNode;
   onClose?: () => void;
 }
@@ -113,7 +102,6 @@ const LinkMenuItem = ({
   externalLink,
   tooltip,
   disabled,
-  event,
   children,
   onClose,
 }: LinkMenuItemProps): JSX.Element => (
@@ -122,7 +110,6 @@ const LinkMenuItem = ({
       <MenuExternalLink
         href={link}
         target="_blank"
-        data-metabase-event={event}
         onClick={onClose}
         data-testid="entity-menu-link"
       >
@@ -132,7 +119,6 @@ const LinkMenuItem = ({
       <MenuLink
         to={link}
         disabled={disabled}
-        data-metabase-event={event}
         onClick={onClose}
         data-testid="entity-menu-link"
       >

@@ -1,4 +1,5 @@
 import { createMockMetadata } from "__support__/metadata";
+import Filter from "metabase-lib/queries/structured/Filter";
 import { createMockSegment } from "metabase-types/api/mocks";
 import {
   createSampleDatabase,
@@ -7,7 +8,6 @@ import {
   PEOPLE,
   PEOPLE_ID,
 } from "metabase-types/api/mocks/presets";
-import Filter from "metabase-lib/queries/structured/Filter";
 
 const metadata = createMockMetadata({
   databases: [createSampleDatabase()],
@@ -16,7 +16,7 @@ const metadata = createMockMetadata({
 
 const ordersTable = metadata.table(ORDERS_ID);
 
-const query = ordersTable.query();
+const query = ordersTable.legacyQuery({ useStructuredQuery: true });
 
 function filter(mbql) {
   return new Filter(mbql, 0, query);
@@ -187,7 +187,7 @@ describe("Filter", () => {
       ).toEqual([null, ["field", ORDERS.TOTAL, null]]);
     });
     it("should set joined-field for new filter clause", () => {
-      const q = ordersTable.query().join({
+      const q = ordersTable.legacyQuery({ useStructuredQuery: true }).join({
         alias: "foo",
         "source-table": PEOPLE_ID,
       });

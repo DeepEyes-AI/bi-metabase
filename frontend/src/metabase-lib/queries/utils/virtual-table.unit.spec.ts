@@ -1,11 +1,11 @@
 import { createMockMetadata } from "__support__/metadata";
+import Field from "metabase-lib/metadata/Field";
+import Table from "metabase-lib/metadata/Table";
+import type StructuredQuery from "metabase-lib/queries/StructuredQuery";
 import {
   createSampleDatabase,
   PRODUCTS_ID,
 } from "metabase-types/api/mocks/presets";
-import type StructuredQuery from "metabase-lib/queries/StructuredQuery";
-import Field from "metabase-lib/metadata/Field";
-import Table from "metabase-lib/metadata/Table";
 
 import { createVirtualField, createVirtualTable } from "./virtual-table";
 
@@ -16,7 +16,9 @@ describe("metabase-lib/queries/utils/virtual-table", () => {
 
   const productsTable = metadata.table(PRODUCTS_ID) as Table;
 
-  const query = productsTable.newQuestion().query() as StructuredQuery;
+  const query = productsTable
+    .newQuestion()
+    .legacyQuery({ useStructuredQuery: true }) as StructuredQuery;
   const field = createVirtualField({
     id: 123,
     metadata,
@@ -40,7 +42,9 @@ describe("metabase-lib/queries/utils/virtual-table", () => {
   });
 
   describe("createVirtualTable", () => {
-    const query = productsTable.newQuestion().query() as StructuredQuery;
+    const query = productsTable
+      .newQuestion()
+      .legacyQuery({ useStructuredQuery: true }) as StructuredQuery;
     const field1 = createVirtualField({
       id: 1,
       metadata,

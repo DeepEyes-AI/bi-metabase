@@ -1,5 +1,6 @@
 import type { ScheduleSettings } from "./settings";
 import type { Table } from "./table";
+
 import type { ISO8601Time } from ".";
 
 export type DatabaseId = number;
@@ -33,6 +34,7 @@ export type DatabaseFeature =
   | "inner-join"
   | "full-join"
   | "nested-field-columns"
+  | "advanced-math-expressions"
   | "connection-impersonation"
   | "connection-impersonation-requires-role";
 

@@ -1,8 +1,16 @@
-import { createAction, createReducer } from "@reduxjs/toolkit";
-import type { Draft } from "@reduxjs/toolkit";
-import { t } from "ttag";
 import { arrayMove } from "@dnd-kit/sortable";
+import type { Draft } from "@reduxjs/toolkit";
+import { createAction, createReducer } from "@reduxjs/toolkit";
+import { t } from "ttag";
 
+import {
+  CANCEL_EDITING_DASHBOARD,
+  INITIALIZE,
+} from "metabase/dashboard/actions/core";
+import Dashboards from "metabase/entities/dashboards";
+import { getPositionForNewDashCard } from "metabase/lib/dashboard_grid";
+import { checkNotNull } from "metabase/lib/types";
+import { addUndo } from "metabase/redux/undo";
 import type {
   DashCardId,
   DashboardId,
@@ -13,19 +21,26 @@ import type {
   Dispatch,
   GetState,
   SelectedTabId,
+  StoreDashboard,
   TabDeletionId,
 } from "metabase-types/store";
-import { INITIALIZE } from "metabase/dashboard/actions/core";
-import { getPositionForNewDashCard } from "metabase/lib/dashboard_grid";
-import { checkNotNull } from "metabase/lib/types";
-import Dashboards from "metabase/entities/dashboards";
-import { addUndo } from "metabase/redux/undo";
+
+import { trackCardMoved } from "../analytics";
 import { INITIAL_DASHBOARD_STATE } from "../constants";
 import { getDashCardById } from "../selectors";
-import { trackCardMoved } from "../analytics";
-import { getExistingDashCards } from "./utils";
+import {
+  calculateDashCardRowAfterUndo,
+  generateTemporaryDashcardId,
+  isVirtualDashCard,
+} from "../utils";
+
+import { getDashCardMoveToTabUndoMessage, getExistingDashCards } from "./utils";
 
 type CreateNewTabPayload = { tabId: DashboardTabId };
+type DuplicateTabPayload = {
+  sourceTabId: DashboardTabId | null;
+  newTabId: DashboardTabId;
+};
 type DeleteTabPayload = {
   tabId: DashboardTabId | null;
   tabDeletionId: TabDeletionId;
@@ -52,6 +67,7 @@ type UndoMoveDashCardToTabPayload = {
 type InitTabsPayload = { slug: string | undefined };
 
 const CREATE_NEW_TAB = "metabase/dashboard/CREATE_NEW_TAB";
+const DUPLICATE_TAB = "metabase/dashboard/DUPLICATE_TAB";
 const DELETE_TAB = "metabase/dashboard/DELETE_TAB";
 const UNDO_DELETE_TAB = "metabase/dashboard/UNDO_DELETE_TAB";
 const RENAME_TAB = "metabase/dashboard/RENAME_TAB";
@@ -65,9 +81,46 @@ const INIT_TABS = "metabase/dashboard/INIT_TABS";
 const createNewTabAction = createAction<CreateNewTabPayload>(CREATE_NEW_TAB);
 
 let tempTabId = -2;
+
 // Needed for testing
 export function resetTempTabId() {
   tempTabId = -2;
+}
+
+function _createInitialTabs({
+  dashId,
+  newTabId,
+  state,
+  prevDash,
+  firstTabName = t`Tab 1`,
+  secondTabName = t`Tab 2`,
+}: {
+  dashId: DashboardId;
+  newTabId: DashboardTabId;
+  state: Draft<DashboardState> | DashboardState; // union type needed to fix `possibly infinite` type error
+  prevDash: StoreDashboard;
+  firstTabName?: string;
+  secondTabName?: string;
+}) {
+  // 1. Create two new tabs, add to dashboard
+  const firstTabId = newTabId + 1;
+  const secondTabId = newTabId;
+  const newTabs = [
+    getDefaultTab({ tabId: firstTabId, dashId, name: firstTabName }),
+    getDefaultTab({ tabId: secondTabId, dashId, name: secondTabName }),
+  ];
+  prevDash.tabs = newTabs;
+
+  // 2. Assign existing dashcards to first tab
+  prevDash.dashcards.forEach(id => {
+    state.dashcards[id] = {
+      ...state.dashcards[id],
+      isDirty: true,
+      dashboard_tab_id: firstTabId,
+    };
+  });
+
+  return { firstTabId, secondTabId };
 }
 
 export function createNewTab() {
@@ -76,6 +129,16 @@ export function createNewTab() {
   tempTabId -= 2;
 
   return createNewTabAction({ tabId });
+}
+
+const duplicateTabAction = createAction<DuplicateTabPayload>(DUPLICATE_TAB);
+
+export function duplicateTab(sourceTabId: DashboardTabId | null) {
+  // Decrement by 2 to leave space for two new tabs if dash doesn't have tabs already
+  const newTabId = tempTabId;
+  tempTabId -= 2;
+
+  return duplicateTabAction({ sourceTabId, newTabId });
 }
 
 export const selectTab = createAction<SelectTabPayload>(SELECT_TAB);
@@ -112,7 +175,7 @@ export const moveDashCardToTab =
 
     dispatch(
       addUndo({
-        message: t`Card moved`,
+        message: getDashCardMoveToTabUndoMessage(dashCard),
         undo: true,
         action: () => {
           dispatch(
@@ -212,26 +275,94 @@ export const tabsReducer = createReducer<DashboardState>(
 
         // Case 2: Dashboard doesn't have tabs
 
-        // 1. Create two new tabs, add to dashboard
-        const firstTabId = tabId + 1;
-        const secondTabId = tabId;
-        const newTabs = [
-          getDefaultTab({ tabId: firstTabId, dashId, name: t`Tab 1` }),
-          getDefaultTab({ tabId: secondTabId, dashId, name: t`Tab 2` }),
-        ];
-        prevDash.tabs = [...prevTabs, ...newTabs];
+        // 1. Create two new tabs, add to dashboard, assign existing dashcards to first tab
+        const { secondTabId } = _createInitialTabs({
+          dashId,
+          newTabId: tabId,
+          state,
+          prevDash,
+        });
 
         // 2. Select second tab
         state.selectedTabId = secondTabId;
+      },
+    );
 
-        // 3. Assign existing dashcards to first tab
-        prevDash.dashcards.forEach(id => {
-          state.dashcards[id] = {
-            ...state.dashcards[id],
+    builder.addCase<typeof duplicateTabAction>(
+      duplicateTabAction,
+      (state, { payload: { sourceTabId, newTabId } }) => {
+        const { dashId, prevDash, prevTabs } = getPrevDashAndTabs({ state });
+        if (!dashId || !prevDash) {
+          throw new Error(
+            `DUPLICATE_TAB was dispatched but either dashId (${dashId}) or prevDash (${prevDash}) are null`,
+          );
+        }
+        const sourceTab = prevTabs.find(tab => tab.id === sourceTabId);
+        if (sourceTabId !== null && !sourceTab) {
+          throw new Error(
+            `DUPLICATED_TAB was dispatched but no tab with sourceTabId ${sourceTabId} was found`,
+          );
+        }
+
+        // 1. Create empty tab(s)
+
+        // Case 1: Dashboard already has tabs
+        if (sourceTab !== undefined) {
+          const newTab = getDefaultTab({
+            tabId: newTabId,
+            dashId,
+            name: t`Copy of ${sourceTab.name}`,
+          });
+          prevDash.tabs = [...prevTabs, newTab];
+
+          // Case 2: Dashboard doesn't have tabs
+        } else {
+          const { firstTabId, secondTabId } = _createInitialTabs({
+            dashId,
+            prevDash,
+            state,
+            newTabId,
+            firstTabName: t`Tab 1`,
+            secondTabName: t`Copy of Tab 1`,
+          });
+          sourceTabId = firstTabId;
+          newTabId = secondTabId;
+        }
+
+        // 2. Duplicate dashcards
+        const sourceTabDashCards = prevDash.dashcards
+          .map(id => state.dashcards[id])
+          .filter(dashCard => dashCard.dashboard_tab_id === sourceTabId);
+
+        sourceTabDashCards.forEach(sourceDashCard => {
+          const newDashCardId = generateTemporaryDashcardId();
+
+          prevDash.dashcards.push(newDashCardId);
+
+          state.dashcards[newDashCardId] = {
+            ...sourceDashCard,
+            id: newDashCardId,
+            dashboard_tab_id: newTabId,
             isDirty: true,
-            dashboard_tab_id: firstTabId,
+          };
+
+          // We don't have card (question) data for virtual dashcards (text, heading, link, action)
+          // @ts-expect-error - possibly infinite type error
+          if (isVirtualDashCard(sourceDashCard)) {
+            return;
+          }
+          if (sourceDashCard.card_id == null) {
+            throw Error("sourceDashCard is non-virtual yet has null card_id");
+          }
+          state.dashcardData[newDashCardId] = {
+            [sourceDashCard.card_id]:
+              state.dashcardData[sourceDashCard.id][sourceDashCard.card_id],
           };
         });
+
+        // 3. Select new tab
+        state.selectedTabId = newTabId;
+        return;
       },
     );
 
@@ -342,11 +473,19 @@ export const tabsReducer = createReducer<DashboardState>(
     builder.addCase(
       _moveDashCardToTab,
       (state, { payload: { dashCardId, destinationTabId } }) => {
-        const dashCard = state.dashcards[dashCardId];
-        const dashboardId = checkNotNull(state.dashboardId);
+        const dashboardState = { ...state } as unknown as DashboardState;
+        const dashCard = dashboardState.dashcards[dashCardId];
+        const dashboardId = checkNotNull(dashboardState.dashboardId);
+        const dashcards = dashboardState.dashcards;
+        const dashboards = dashboardState.dashboards;
 
         const { row, col } = getPositionForNewDashCard(
-          getExistingDashCards(state, dashboardId, destinationTabId),
+          getExistingDashCards(
+            dashboards,
+            dashcards,
+            dashboardId,
+            destinationTabId,
+          ),
           dashCard.size_x,
           dashCard.size_y,
         );
@@ -366,7 +505,7 @@ export const tabsReducer = createReducer<DashboardState>(
       ) => {
         const dashCard = state.dashcards[dashCardId];
 
-        dashCard.row = originalRow;
+        dashCard.row = calculateDashCardRowAfterUndo(originalRow);
         dashCard.col = originalCol;
         dashCard.dashboard_tab_id = originalTabId;
         dashCard.isDirty = true;
@@ -406,6 +545,15 @@ export const tabsReducer = createReducer<DashboardState>(
         tab => tab.id === state.selectedTabId,
       );
       state.selectedTabId = (newTabs && newTabs[selectedTabIndex]?.id) ?? null;
+    });
+
+    builder.addCase(CANCEL_EDITING_DASHBOARD, state => {
+      const { editingDashboard, selectedTabId } = state;
+      const tabs = editingDashboard?.tabs ?? [];
+      const hasTab = tabs.some(tab => tab.id === selectedTabId);
+      if (!hasTab) {
+        state.selectedTabId = tabs[0]?.id ?? null;
+      }
     });
 
     builder.addCase<

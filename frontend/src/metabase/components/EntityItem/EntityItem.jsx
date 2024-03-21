@@ -1,20 +1,20 @@
 /* eslint-disable react/prop-types */
+import cx from "classnames";
 import { useMemo } from "react";
 import { t } from "ttag";
-import cx from "classnames";
 
-import * as Urls from "metabase/lib/urls";
-import EntityMenu from "metabase/components/EntityMenu";
-import Swapper from "metabase/core/components/Swapper";
-import CheckBox from "metabase/core/components/CheckBox";
-import { Ellipsified } from "metabase/core/components/Ellipsified";
-import { Icon } from "metabase/core/components/Icon";
 import {
   isPreviewShown,
-  isFullyParametrized,
+  isFullyParameterized,
   isItemModel,
   isItemPinned,
 } from "metabase/collections/utils";
+import EntityMenu from "metabase/components/EntityMenu";
+import CheckBox from "metabase/core/components/CheckBox";
+import { Ellipsified } from "metabase/core/components/Ellipsified";
+import Swapper from "metabase/core/components/Swapper";
+import * as Urls from "metabase/lib/urls";
+import { Icon } from "metabase/ui";
 
 import {
   EntityIconWrapper,
@@ -25,7 +25,6 @@ import {
 } from "./EntityItem.styled";
 
 function EntityIconCheckBox({
-  item,
   variant,
   icon,
   pinned,
@@ -45,9 +44,7 @@ function EntityIconCheckBox({
   return (
     <EntityIconWrapper
       isPinned={pinned}
-      model={item.model}
       onClick={selectable ? handleClick : null}
-      rounded
       disabled={disabled}
       {...props}
     >
@@ -98,11 +95,10 @@ function EntityItemMenu({
   onToggleBookmark,
   onTogglePreview,
   className,
-  analyticsContext,
 }) {
   const isPinned = isItemPinned(item);
   const isPreviewed = isPreviewShown(item);
-  const isParametrized = isFullyParametrized(item);
+  const isParameterized = isFullyParameterized(item);
   const isModel = isItemModel(item);
   const isXrayShown = isModel && isXrayEnabled;
   const isMetabotShown = isModel && canUseMetabot;
@@ -110,23 +106,25 @@ function EntityItemMenu({
   const actions = useMemo(
     () =>
       [
+        onToggleBookmark && {
+          title: isBookmarked ? t`Remove from bookmarks` : t`Bookmark`,
+          icon: "bookmark",
+          action: onToggleBookmark,
+        },
         onPin && {
           title: isPinned ? t`Unpin` : t`Pin this`,
           icon: isPinned ? "unpin" : "pin",
           action: onPin,
-          event: `${analyticsContext};Entity Item;Pin Item;${item.model}`,
         },
         isMetabotShown && {
           title: t`Ask Metabot`,
           link: Urls.modelMetabot(item.id),
           icon: "insight",
-          event: `${analyticsContext};Entity Item;Ask Metabot;${item.model}`,
         },
         isXrayShown && {
           title: t`X-ray this`,
           link: Urls.xrayModel(item.id),
           icon: "bolt",
-          event: `${analyticsContext};Entity Item;X-ray Item;${item.model}`,
         },
         onTogglePreview && {
           title: isPreviewed
@@ -134,45 +132,34 @@ function EntityItemMenu({
             : t`Show visualization`,
           icon: isPreviewed ? "eye_crossed_out" : "eye",
           action: onTogglePreview,
-          tooltip: !isParametrized
+          tooltip: !isParameterized
             ? t`Open this question and fill in its variables to see it.`
             : undefined,
-          disabled: !isParametrized,
-          event: `${analyticsContext};Entity Item;Preview Item;${item.model}`,
+          disabled: !isParameterized,
         },
         onMove && {
           title: t`Move`,
           icon: "move",
           action: onMove,
-          event: `${analyticsContext};Entity Item;Move Item;${item.model}`,
         },
         onCopy && {
           title: t`Duplicate`,
           icon: "clone",
           action: onCopy,
-          event: `${analyticsContext};Entity Item;Copy Item;${item.model}`,
         },
         onArchive && {
           title: t`Archive`,
           icon: "archive",
           action: onArchive,
-          event: `${analyticsContext};Entity Item;Archive Item;${item.model}`,
-        },
-        onToggleBookmark && {
-          title: isBookmarked ? t`Remove from bookmarks` : t`Bookmark`,
-          icon: "bookmark",
-          action: onToggleBookmark,
-          event: `${analyticsContext};Entity Item;Bookmark Item;${item.model}`,
         },
       ].filter(action => action),
     [
       item.id,
-      item.model,
       isPinned,
       isXrayShown,
       isMetabotShown,
       isPreviewed,
-      isParametrized,
+      isParameterized,
       isBookmarked,
       onPin,
       onMove,
@@ -180,7 +167,6 @@ function EntityItemMenu({
       onArchive,
       onTogglePreview,
       onToggleBookmark,
-      analyticsContext,
     ],
   );
   if (actions.length === 0) {
@@ -200,7 +186,6 @@ function EntityItemMenu({
 }
 
 const EntityItem = ({
-  analyticsContext,
   name,
   iconName,
   onPin,
@@ -254,7 +239,6 @@ const EntityItem = ({
           onCopy={onCopy}
           onArchive={onArchive}
           className="ml1"
-          analyticsContext={analyticsContext}
         />
       </EntityItemActions>
     </EntityItemWrapper>

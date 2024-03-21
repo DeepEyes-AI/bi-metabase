@@ -1,10 +1,8 @@
-import { useAsync } from "react-use";
-import { without } from "underscore";
 import { useState } from "react";
 import { t } from "ttag";
-import { UserApi } from "metabase/services";
-import type { UserId, UserListResult } from "metabase-types/api";
-import { Center, Text } from "metabase/ui";
+import { without } from "underscore";
+
+import { useUserListQuery } from "metabase/common/hooks/use-user-list-query";
 import { SearchFilterPopoverWrapper } from "metabase/search/components/SearchFilterPopoverWrapper";
 import {
   SearchUserItemContainer,
@@ -15,7 +13,8 @@ import {
   UserPickerInput,
 } from "metabase/search/components/SearchUserPicker/SearchUserPicker.styled";
 import { UserListElement } from "metabase/search/components/UserListElement";
-import { Icon } from "metabase/core/components/Icon";
+import { Center, Text, Icon } from "metabase/ui";
+import type { UserId, UserListResult } from "metabase-types/api";
 
 export const SearchUserPicker = ({
   value,
@@ -24,11 +23,11 @@ export const SearchUserPicker = ({
   value: UserId[];
   onChange: (value: UserId[]) => void;
 }) => {
-  const { loading: isLoading, value: userApiReturnValue } = useAsync<
-    () => Promise<{ data: UserListResult[] }>
-  >(UserApi.list);
+  const { isLoading, data } = useUserListQuery({
+    query: { recipients: true },
+  });
 
-  const users = userApiReturnValue?.data ?? [];
+  const users = data ?? [];
 
   const [userFilter, setUserFilter] = useState("");
   const [selectedUserIds, setSelectedUserIds] = useState(value);
@@ -91,7 +90,7 @@ export const SearchUserPicker = ({
                 <SelectedUserButton
                   data-testid="selected-user-button"
                   key={userId}
-                  c="brand.1"
+                  c="brand"
                   px="md"
                   py="sm"
                   maw="100%"

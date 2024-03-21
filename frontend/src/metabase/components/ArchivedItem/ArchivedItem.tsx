@@ -1,14 +1,12 @@
 import { t } from "ttag";
 
-import type { CollectionItemModel } from "metabase-types/api";
-import type { IconName } from "metabase/core/components/Icon";
-
+import { getTranslatedEntityName } from "metabase/common/utils/model-names";
 import CheckBox from "metabase/core/components/CheckBox";
 import Swapper from "metabase/core/components/Swapper";
 import Tooltip from "metabase/core/components/Tooltip";
-
 import { color as c } from "metabase/lib/colors";
-import { getTranslatedEntityName } from "metabase/common/utils/model-names";
+import type { IconName } from "metabase/ui";
+import type { CollectionItemModel } from "metabase-types/api";
 
 import { ActionIcon, ItemIcon, ItemIconContainer } from "./ArchivedItem.styled";
 
@@ -17,7 +15,6 @@ interface ArchivedItemProps {
   model: CollectionItemModel;
   icon: IconName;
   color?: string;
-  isAdmin: boolean;
   onUnarchive?: () => void;
   onDelete?: () => void;
   selected: boolean;
@@ -30,7 +27,6 @@ export const ArchivedItem = ({
   model,
   icon,
   color = c("text-light"),
-  isAdmin = false,
   onUnarchive,
   onDelete,
   selected,
@@ -56,7 +52,7 @@ export const ArchivedItem = ({
       isSwapped={showSelect}
     />
     {name}
-    {isAdmin && (onUnarchive || onDelete) && (
+    {(onUnarchive || onDelete) && (
       <span className="ml-auto mr2">
         {onUnarchive && (
           <Tooltip

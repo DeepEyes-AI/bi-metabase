@@ -1,4 +1,5 @@
 import type { UserId } from "metabase-types/api/user";
+
 import type { CardId } from "./card";
 import type { Collection, CollectionId } from "./collection";
 import type { DatabaseId, InitialSyncStatus } from "./database";
@@ -48,6 +49,11 @@ export interface SearchResults {
   total: number;
 }
 
+export type CollectionEssentials = Pick<
+  Collection,
+  "id" | "name" | "authority_level"
+>;
+
 export interface SearchResult {
   id: number;
   name: string;
@@ -55,7 +61,7 @@ export interface SearchResult {
   description: string | null;
   archived: boolean | null;
   collection_position: number | null;
-  collection: Pick<Collection, "id" | "name" | "authority_level">;
+  collection: CollectionEssentials;
   table_id: TableId;
   bookmark: boolean | null;
   database_id: DatabaseId;

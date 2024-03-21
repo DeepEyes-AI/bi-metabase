@@ -1,8 +1,10 @@
 import { useMemo } from "react";
 import { t } from "ttag";
-import CheckBox from "metabase/core/components/CheckBox";
+
 import { StackedCheckBox } from "metabase/components/StackedCheckBox";
+import CheckBox from "metabase/core/components/CheckBox";
 import * as Lib from "metabase-lib";
+
 import { ToggleItem, ColumnItem } from "./FieldPicker.styled";
 
 interface FieldPickerProps {
@@ -10,8 +12,15 @@ interface FieldPickerProps {
   stageIndex: number;
   columns: Lib.ColumnMetadata[];
   "data-testid"?: string;
-  isColumnSelected: (column: Lib.ColumnMetadata) => boolean;
-  onToggle: (columnIndex: number, isSelected: boolean) => void;
+  isColumnSelected: (
+    column: Lib.ColumnMetadata,
+    columnInfo: Lib.ColumnDisplayInfo,
+  ) => boolean;
+  onToggle: (
+    column: Lib.ColumnMetadata,
+    isSelected: boolean,
+    columnIndex: number,
+  ) => void;
   onSelectAll: () => void;
   onSelectNone: () => void;
 }
@@ -28,27 +37,21 @@ export const FieldPicker = ({
 }: FieldPickerProps) => {
   const items = useMemo(
     () =>
-      columns.map(column => ({
-        ...Lib.displayInfo(query, stageIndex, column),
-        column,
-      })),
-    [query, stageIndex, columns],
+      columns.map(column => {
+        const columnInfo = Lib.displayInfo(query, stageIndex, column);
+        return {
+          column,
+          columnInfo,
+          isSelected: isColumnSelected(column, columnInfo),
+        };
+      }),
+    [query, stageIndex, columns, isColumnSelected],
   );
 
-  const isAll = useMemo(
-    () => columns.every(isColumnSelected),
-    [columns, isColumnSelected],
-  );
-
-  const isNone = useMemo(
-    () => columns.every(column => !isColumnSelected(column)),
-    [columns, isColumnSelected],
-  );
-
-  const isDisabledDeselection = useMemo(
-    () => columns.filter(isColumnSelected).length <= 1,
-    [columns, isColumnSelected],
-  );
+  const isAll = items.every(item => item.isSelected);
+  const isNone = items.every(item => !item.isSelected);
+  const isDisabledDeselection =
+    items.filter(item => item.isSelected).length <= 1;
 
   const handleLabelToggle = () => {
     if (isAll) {
@@ -70,12 +73,14 @@ export const FieldPicker = ({
         />
       </ToggleItem>
       {items.map((item, index) => (
-        <ColumnItem key={item.longDisplayName}>
+        <ColumnItem key={index}>
           <CheckBox
-            checked={isColumnSelected(item.column)}
-            label={item.displayName}
-            disabled={isColumnSelected(item.column) && isDisabledDeselection}
-            onChange={event => onToggle(index, event.target.checked)}
+            label={item.columnInfo.displayName}
+            checked={item.isSelected}
+            disabled={item.isSelected && isDisabledDeselection}
+            onChange={event =>
+              onToggle(item.column, event.target.checked, index)
+            }
           />
         </ColumnItem>
       ))}

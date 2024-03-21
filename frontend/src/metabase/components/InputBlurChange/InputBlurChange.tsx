@@ -1,7 +1,8 @@
 import type * as React from "react";
 import { useCallback, useLayoutEffect, useRef, useState } from "react";
-import _ from "underscore";
 import { useUnmount } from "react-use";
+import _ from "underscore";
+
 import type { InputProps } from "metabase/core/components/Input";
 import Input from "metabase/core/components/Input";
 
@@ -10,15 +11,25 @@ import Input from "metabase/core/components/Input";
  * `onBlurChange` feature, otherwise you should use <input> directly
  */
 
+type Value = string | number | null;
+type HTMLInputValue = string | number | undefined;
+
 export interface InputBlurChangeProps
   extends Omit<InputProps, "inputRef" | "value" | "onBlur"> {
   value: string | undefined;
   onBlurChange?: (event: { target: HTMLInputElement }) => void;
+  normalize?: (value: Value) => Value;
 }
 
 const InputBlurChange = (props: InputBlurChangeProps) => {
-  const { value, onChange, onBlurChange, ...restProps } = props;
-  const [internalValue, setInternalValue] = useState(value);
+  const {
+    value,
+    onChange,
+    onBlurChange,
+    normalize = value => value,
+    ...restProps
+  } = props;
+  const [internalValue, setInternalValue] = useState<HTMLInputValue>(value);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useLayoutEffect(() => {
@@ -31,18 +42,20 @@ const InputBlurChange = (props: InputBlurChangeProps) => {
 
       if (onChange) {
         onChange(event);
+        setInternalValue(normalize(event.target.value) ?? undefined);
       }
     },
-    [onChange],
+    [normalize, onChange],
   );
 
   const handleBlur = useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
       if (onBlurChange && (value || "") !== event.target.value) {
         onBlurChange(event);
+        setInternalValue(normalize(event.target.value) ?? undefined);
       }
     },
-    [value, onBlurChange],
+    [normalize, onBlurChange, value],
   );
 
   useUnmount(() => {

@@ -1,7 +1,7 @@
 import PropTypes from "prop-types";
 
-import ParametersList from "metabase/parameters/components/ParametersList";
 import { useSyncedQueryString } from "metabase/hooks/use-synced-query-string";
+import ParametersList from "metabase/parameters/components/ParametersList";
 import { getParameterValuesBySlug } from "metabase-lib/parameters/utils/parameter-values";
 
 const propTypes = {
@@ -21,6 +21,8 @@ const propTypes = {
   setParameterValue: PropTypes.func,
   setParameterIndex: PropTypes.func,
   setEditingParameter: PropTypes.func,
+  setParameterValueToDefault: PropTypes.func,
+  enableParameterRequiredBehavior: PropTypes.bool,
 };
 
 export function SyncedParametersList({
@@ -40,6 +42,8 @@ export function SyncedParametersList({
   setParameterValue,
   setParameterIndex,
   setEditingParameter,
+  setParameterValueToDefault,
+  enableParameterRequiredBehavior,
 }) {
   useSyncedQueryString(
     () => getParameterValuesBySlug(parameters),
@@ -61,6 +65,8 @@ export function SyncedParametersList({
       setParameterValue={setParameterValue}
       setParameterIndex={setParameterIndex}
       setEditingParameter={setEditingParameter}
+      setParameterValueToDefault={setParameterValueToDefault}
+      enableParameterRequiredBehavior={enableParameterRequiredBehavior}
     />
   );
 }

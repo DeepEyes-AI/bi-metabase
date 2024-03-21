@@ -1,3 +1,4 @@
+import { setupGroupsEndpoint } from "__support__/server-mocks";
 import { screen } from "__support__/ui";
 import {
   createMockGroup,
@@ -5,7 +6,7 @@ import {
   createMockSettings,
   createMockTokenFeatures,
 } from "metabase-types/api/mocks";
-import { setupGroupsEndpoint } from "__support__/server-mocks";
+
 import type { SetupOpts } from "./setup";
 import { setup } from "./setup";
 
@@ -71,7 +72,7 @@ describe("SettingsEditorApp", () => {
     });
 
     expect(
-      await screen.findByLabelText("SAML Identity Provider URL"),
+      await screen.findByLabelText(/SAML Identity Provider URL/),
     ).toHaveValue("Using value of env var $MB_SAML_IDENTITY_PROVIDER_URI");
   });
 });

@@ -30,7 +30,8 @@
   (deferred-tru "Controls how often the heartbeats are sent when an SSH tunnel is established (in seconds).")
   :visibility :public
   :type       :integer
-  :default    180)
+  :default    180
+  :audit      :getter)
 
 (set! *warn-on-reflection* true)
 
@@ -130,15 +131,18 @@
 ;; TODO Seems like this definitely belongs in [[metabase.driver.sql-jdbc.connection]] or something like that.
 (defmethod driver/incorporate-ssh-tunnel-details :sql-jdbc
   [_driver db-details]
-  (cond (not (use-ssh-tunnel? db-details))
-        ;; no ssh tunnel in use
-        db-details
-        (ssh-tunnel-open? db-details)
-        ;; tunnel in use, and is open
-        db-details
-        :else
-        ;; tunnel in use, and is not open
-        (include-ssh-tunnel! db-details)))
+  (cond
+    ;; no ssh tunnel in use
+    (not (use-ssh-tunnel? db-details))
+    db-details
+
+    ;; tunnel in use, and is open
+    (ssh-tunnel-open? db-details)
+    db-details
+
+    ;; tunnel in use, and is not open
+    :else
+    (include-ssh-tunnel! db-details)))
 
 (defn close-tunnel!
   "Close a running tunnel session"

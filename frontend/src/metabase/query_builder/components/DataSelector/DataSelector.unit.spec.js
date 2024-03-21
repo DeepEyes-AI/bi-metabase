@@ -8,11 +8,8 @@ import {
   renderWithProviders,
   screen,
 } from "__support__/ui";
-
 import { delay } from "metabase/lib/promise";
-
 import { UnconnectedDataSelector as DataSelector } from "metabase/query_builder/components/DataSelector";
-
 import {
   createMockDatabase,
   createMockSavedQuestionsDatabase,
@@ -148,7 +145,7 @@ describe("DataSelector", () => {
 
     // db and schema are still visible
     expect(screen.getByText("Multi-schema Database")).toBeInTheDocument();
-    expect(screen.getByText("- First Schema")).toBeInTheDocument();
+    expect(screen.getByText("First Schema")).toBeInTheDocument();
 
     // but other schema is hidden
     expect(screen.queryByText("Second Schema")).not.toBeInTheDocument();

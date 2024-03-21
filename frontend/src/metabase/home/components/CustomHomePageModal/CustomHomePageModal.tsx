@@ -1,26 +1,23 @@
 import { useState, useCallback } from "react";
 import { t } from "ttag";
 
-import { Box, Text } from "metabase/ui";
-
-import { useDispatch } from "metabase/lib/redux";
-import { updateSettings } from "metabase/admin/settings/settings";
 import { trackCustomHomepageDashboardEnabled } from "metabase/admin/settings/analytics";
-import { refreshCurrentUser } from "metabase/redux/user";
-import { addUndo, dismissUndo } from "metabase/redux/undo";
-
+import { updateSettings } from "metabase/admin/settings/settings";
+import { isPersonalCollectionOrChild } from "metabase/collections/utils";
+import { DashboardSelector } from "metabase/components/DashboardSelector/DashboardSelector";
 import Modal from "metabase/components/Modal";
 import ModalContent from "metabase/components/ModalContent";
-
-import { DashboardSelector } from "metabase/components/DashboardSelector/DashboardSelector";
 import Button from "metabase/core/components/Button/Button";
-import { isPersonalCollectionOrChild } from "metabase/collections/utils";
-
+import { useDispatch, useSelector } from "metabase/lib/redux";
+import { addUndo, dismissUndo } from "metabase/redux/undo";
+import { refreshCurrentUser } from "metabase/redux/user";
+import { getApplicationName } from "metabase/selectors/whitelabel";
+import { Box, Text } from "metabase/ui";
 import type { Collection, DashboardId } from "metabase-types/api";
 
 const CUSTOM_HOMEPAGE_SETTING_KEY = "custom-homepage";
 const CUSTOM_HOMEPAGE_DASHBOARD_SETTING_KEY = "custom-homepage-dashboard";
-const CUSTOM_HOMEPAGE_REDIRECT_TOAST_KEY = "dismissed_custom_dashboard_toast";
+const CUSTOM_HOMEPAGE_REDIRECT_TOAST_KEY = "dismissed-custom-dashboard-toast";
 
 interface CustomHomePageModalProps {
   isOpen: boolean;
@@ -50,11 +47,13 @@ export const CustomHomePageModal = ({
           <Box ml="0.5rem" mr="2.5rem">
             <Text
               span
+              c="white"
               fw={700}
             >{t`This dashboard has been set as your homepage.`}</Text>
             <br />
             <Text
               span
+              c="white"
             >{t`You can change this in Admin > Settings > General.`}</Text>
           </Box>
         ),
@@ -86,6 +85,8 @@ export const CustomHomePageModal = ({
     onClose();
   }, [onClose, setDashboardId]);
 
+  const applicationName = useSelector(getApplicationName);
+
   return (
     <Modal isOpen={isOpen} onClose={onClose}>
       <ModalContent
@@ -105,7 +106,7 @@ export const CustomHomePageModal = ({
           </Button>,
         ]}
       >
-        <p>{t`Pick a dashboard to serve as the homepage. If people lack permissions to view the selected dashboard, Metabase will redirect them to the default homepage. You can update or reset the homepage at any time in Admin Settings > Settings > General.`}</p>
+        <p>{t`Pick a dashboard to serve as the homepage. If people lack permissions to view the selected dashboard, ${applicationName} will redirect them to the default homepage. You can update or reset the homepage at any time in Admin Settings > Settings > General.`}</p>
         <DashboardSelector
           value={dashboardId}
           onChange={handleChange}

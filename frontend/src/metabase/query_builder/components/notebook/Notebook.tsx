@@ -1,19 +1,20 @@
 import { t } from "ttag";
 import _ from "underscore";
+
 import Button from "metabase/core/components/Button";
 import Questions from "metabase/entities/questions";
-import { setUIControls } from "metabase/query_builder/actions";
 import { useDispatch } from "metabase/lib/redux";
-import type { State } from "metabase-types/store";
+import { setUIControls } from "metabase/query_builder/actions";
 import * as Lib from "metabase-lib";
 import type Question from "metabase-lib/Question";
-import StructuredQuery from "metabase-lib/queries/StructuredQuery";
 import {
   getQuestionIdFromVirtualTableId,
   isVirtualCardId,
 } from "metabase-lib/metadata/utils/saved-questions";
-import NotebookSteps from "./NotebookSteps";
+import type { State } from "metabase-types/store";
+
 import { NotebookRoot } from "./Notebook.styled";
+import NotebookSteps from "./NotebookSteps";
 
 interface NotebookOwnProps {
   className?: string;
@@ -50,13 +51,9 @@ const Notebook = ({ className, updateQuestion, ...props }: NotebookProps) => {
 
   async function cleanupQuestion() {
     // Converting a query to MLv2 and back performs a clean-up
-    let cleanQuestion = question.setDatasetQuery(
-      Lib.toLegacyQuery(question._getMLv2Query()),
+    let cleanQuestion = question.setQuery(
+      Lib.dropEmptyStages(question.query()),
     );
-
-    // MLv2 doesn't clean up redundant stages, so we do it with MLv1 for now
-    const query = cleanQuestion.query() as StructuredQuery;
-    cleanQuestion = cleanQuestion.setQuery(query.clean());
 
     if (cleanQuestion.display() === "table") {
       cleanQuestion = cleanQuestion.setDefaultDisplay();
@@ -98,12 +95,17 @@ const Notebook = ({ className, updateQuestion, ...props }: NotebookProps) => {
 
 function getSourceQuestionId(question: Question) {
   const query = question.query();
-  if (query instanceof StructuredQuery) {
-    const sourceTableId = query.sourceTableId();
+  const { isNative } = Lib.queryDisplayInfo(query);
+
+  if (!isNative) {
+    const sourceTableId = Lib.sourceTableOrCardId(query);
+
     if (isVirtualCardId(sourceTableId)) {
       return getQuestionIdFromVirtualTableId(sourceTableId);
     }
   }
+
+  return undefined;
 }
 
 // eslint-disable-next-line import/no-default-export -- deprecated usage

@@ -1,9 +1,10 @@
 import styled from "@emotion/styled";
-import { Icon } from "metabase/core/components/Icon";
+
 import { color } from "metabase/lib/colors";
+import { Icon } from "metabase/ui";
 
 export const SectionRoot = styled.div`
-  padding: 2rem;
+  padding-left: 1rem;
 `;
 
 export const SectionHeader = styled.div`

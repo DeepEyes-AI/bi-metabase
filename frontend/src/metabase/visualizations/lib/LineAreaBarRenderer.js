@@ -1,26 +1,17 @@
 import crossfilter from "crossfilter";
 import d3 from "d3";
 import dc from "dc";
-import _ from "underscore";
 import { assocIn, updateIn } from "icepick";
 import { t } from "ttag";
+import _ from "underscore";
+
 import { lighten } from "metabase/lib/colors";
-
 import { keyForSingleSeries } from "metabase/visualizations/lib/settings/series";
-import {
-  updateDateTimeFilter,
-  updateNumericFilter,
-} from "metabase-lib/queries/utils/actions";
-import { isStructured } from "metabase-lib/queries/utils/card";
+import * as Lib from "metabase-lib";
 import Question from "metabase-lib/Question";
+import { isNative } from "metabase-lib/queries/utils/card";
 
-import {
-  computeSplit,
-  computeMaxDecimalsForValues,
-  getFriendlyName,
-  colorShades,
-} from "./utils";
-
+import lineAndBarOnRender from "./LineAreaBarPostRender";
 import {
   applyChartTimeseriesXAxis,
   applyChartQuantitativeXAxis,
@@ -28,16 +19,11 @@ import {
   applyChartYAxis,
   getYValueFormatter,
 } from "./apply_axis";
-
 import { setupTooltips } from "./apply_tooltips";
-import {
-  getNormalizedStackedTrendDatas,
-  getTrendDataPointsFromInsight,
-} from "./trends";
-
 import fillMissingValuesInDatas from "./fill_data";
-import { NULL_DIMENSION_WARNING, unaggregatedDataWarning } from "./warnings";
-
+import { lineAddons } from "./graph/addons";
+import { initBrush } from "./graph/brush";
+import { stack, stackOffsetDiverging } from "./graph/stack";
 import {
   forceSortedGroupsOfGroups,
   initChart, // TODO - probably better named something like `initChartParent`
@@ -63,12 +49,17 @@ import {
   replaceNullValuesForOrdinal,
   shouldSplitYAxis,
 } from "./renderer_utils";
-
-import lineAndBarOnRender from "./LineAreaBarPostRender";
-
-import { lineAddons } from "./graph/addons";
-import { initBrush } from "./graph/brush";
-import { stack, stackOffsetDiverging } from "./graph/stack";
+import {
+  getNormalizedStackedTrendDatas,
+  getTrendDataPointsFromInsight,
+} from "./trends";
+import {
+  computeSplit,
+  computeMaxDecimalsForValues,
+  getFriendlyName,
+  colorShades,
+} from "./utils";
+import { NULL_DIMENSION_WARNING, unaggregatedDataWarning } from "./warnings";
 
 const BAR_PADDING_RATIO = 0.2;
 const DEFAULT_INTERPOLATION = "linear";
@@ -77,7 +68,7 @@ const enableBrush = (series, onChangeCardAndRun) =>
   !!(
     onChangeCardAndRun &&
     !isMultiCardSeries(series) &&
-    isStructured(series[0].card) &&
+    !isNative(series[0].card) &&
     !isRemappedToString(series) &&
     !hasClickBehavior(series)
   );
@@ -351,7 +342,7 @@ function getYAxisProps(props, yExtents, datas) {
 
 /// make the `onBrushChange()` and `onBrushEnd()` functions we'll use later, as well as an `isBrushing()` function to check
 /// current status.
-function makeBrushChangeFunctions({ series, onChangeCardAndRun }) {
+function makeBrushChangeFunctions({ series, onChangeCardAndRun, metadata }) {
   let _isBrushing = false;
 
   const isBrushing = () => _isBrushing;
@@ -362,23 +353,44 @@ function makeBrushChangeFunctions({ series, onChangeCardAndRun }) {
 
   function onBrushEnd(range) {
     _isBrushing = false;
+
     if (range) {
       const column = series[0].data.cols[0];
       const card = series[0].card;
-      const query = new Question(card).query();
+      const question = new Question(card, metadata);
+      const query = question.query();
+      const stageIndex = -1;
+
       const [start, end] = range;
+
       if (isDimensionTimeseries(series)) {
+        const nextQuery = Lib.updateTemporalFilter(
+          query,
+          stageIndex,
+          column,
+          new Date(start).toISOString(),
+          new Date(end).toISOString(),
+        );
+        const updatedQuestion = question.setQuery(nextQuery);
+        const nextCard = updatedQuestion.card();
+
         onChangeCardAndRun({
-          nextCard: updateDateTimeFilter(query, column, start, end)
-            .question()
-            .card(),
+          nextCard,
           previousCard: card,
         });
       } else {
+        const nextQuery = Lib.updateNumericFilter(
+          query,
+          stageIndex,
+          column,
+          start,
+          end,
+        );
+        const updatedQuestion = question.setQuery(nextQuery);
+        const nextCard = updatedQuestion.card();
+
         onChangeCardAndRun({
-          nextCard: updateNumericFilter(query, column, start, end)
-            .question()
-            .card(),
+          nextCard,
           previousCard: card,
         });
       }

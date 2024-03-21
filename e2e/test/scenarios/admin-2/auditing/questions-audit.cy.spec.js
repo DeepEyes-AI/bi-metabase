@@ -1,15 +1,17 @@
 import _ from "underscore";
+
+import {
+  ORDERS_QUESTION_ID,
+  ORDERS_COUNT_QUESTION_ID,
+  ORDERS_BY_YEAR_QUESTION_ID,
+  FIRST_COLLECTION_ID,
+} from "e2e/support/cypress_sample_instance_data";
 import {
   restore,
   describeEE,
   visitQuestion,
   setTokenFeatures,
 } from "e2e/support/helpers";
-import {
-  ORDERS_QUESTION_ID,
-  ORDERS_COUNT_QUESTION_ID,
-  ORDERS_BY_YEAR_QUESTION_ID,
-} from "e2e/support/cypress_sample_instance_data";
 
 describeEE("audit > auditing > questions", () => {
   beforeEach(() => {
@@ -73,14 +75,11 @@ describeEE("audit > auditing > questions", () => {
     });
 
     it("should support filtering by collection name", () => {
-      const FIRST_COLLECTION_ID = 10;
-
       cy.createNativeQuestion({
         name: "My question",
         native: {
           query: "SELECT * FROM ORDERS",
           "template-tags": {},
-          collection_id: 1,
         },
         collection_id: FIRST_COLLECTION_ID,
       });

@@ -1,13 +1,13 @@
 import { t } from "ttag";
 
-import { PLUGIN_COLLECTIONS } from "metabase/plugins";
-import * as Urls from "metabase/lib/urls";
-import EntityMenu from "metabase/components/EntityMenu";
-import { ANALYTICS_CONTEXT } from "metabase/collections/constants";
 import {
-  isPersonalCollection,
+  isInstanceAnalyticsCustomCollection,
+  isRootPersonalCollection,
   isRootCollection,
 } from "metabase/collections/utils";
+import EntityMenu from "metabase/components/EntityMenu";
+import * as Urls from "metabase/lib/urls";
+import { PLUGIN_COLLECTIONS } from "metabase/plugins";
 import type { Collection } from "metabase-types/api";
 
 export interface CollectionMenuProps {
@@ -26,10 +26,12 @@ export const CollectionMenu = ({
   const items = [];
   const url = Urls.collection(collection);
   const isRoot = isRootCollection(collection);
-  const isPersonal = isPersonalCollection(collection);
+  const isPersonal = isRootPersonalCollection(collection);
+  const isInstanceAnalyticsCustom =
+    isInstanceAnalyticsCustomCollection(collection);
   const canWrite = collection.can_write;
 
-  if (isAdmin && !isRoot && !isPersonal && !isPersonalCollectionChild) {
+  if (isAdmin && !isRoot && canWrite) {
     items.push(
       ...PLUGIN_COLLECTIONS.getAuthorityLevelMenuItems(
         collection,
@@ -43,22 +45,19 @@ export const CollectionMenu = ({
       title: t`Edit permissions`,
       icon: "lock",
       link: `${url}/permissions`,
-      event: `${ANALYTICS_CONTEXT};Edit Menu;Edit Permissions`,
     });
   }
 
-  if (!isRoot && !isPersonal && canWrite) {
+  if (!isRoot && !isPersonal && canWrite && !isInstanceAnalyticsCustom) {
     items.push({
       title: t`Move`,
       icon: "move",
       link: `${url}/move`,
-      event: `${ANALYTICS_CONTEXT};Edit Menu;Move Collection`,
     });
     items.push({
       title: t`Archive`,
       icon: "archive",
       link: `${url}/archive`,
-      event: `${ANALYTICS_CONTEXT};Edit Menu;Archive Collection`,
     });
   }
 

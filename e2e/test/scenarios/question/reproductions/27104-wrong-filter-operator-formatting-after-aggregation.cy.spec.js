@@ -1,11 +1,11 @@
+import { SAMPLE_DB_ID } from "e2e/support/cypress_data";
+import { SAMPLE_DATABASE } from "e2e/support/cypress_sample_database";
 import {
   restore,
   popover,
   visitQuestionAdhoc,
   visualize,
 } from "e2e/support/helpers";
-import { SAMPLE_DB_ID } from "e2e/support/cypress_data";
-import { SAMPLE_DATABASE } from "e2e/support/cypress_sample_database";
 
 const { ORDERS_ID, ORDERS, PEOPLE } = SAMPLE_DATABASE;
 
@@ -35,13 +35,15 @@ describe("issue 27104", () => {
     popover().findByText("Count").click();
     popover().within(() => {
       // The following line is the main assertion.
-      cy.findByTestId("sidebar-header-title").should("have.text", "Count");
+      cy.button("Back").should("have.text", "Count");
       // The rest of the test is not really needed for this reproduction.
-      cy.findByTestId("select-button").contains("Equal to").click();
+      cy.findByDisplayValue("Equal to").click();
     });
-    popover().contains("Greater than").click();
-    cy.findByPlaceholderText("Enter a number").type("0").blur();
-    popover().button("Add filter").click();
+    cy.findByRole("listbox").findByText("Greater than").click();
+    popover().within(() => {
+      cy.findByPlaceholderText("Enter a number").type("0").blur();
+      cy.button("Add filter").click();
+    });
 
     visualize();
 

@@ -1,5 +1,6 @@
 (ns metabase-enterprise.serialization.v2.entity-ids
   (:require
+   [clojure.set :as set]
    [clojure.string :as str]
    [metabase.db :as mdb]
    [metabase.db.connection :as mdb.connection]
@@ -19,14 +20,17 @@
 (comment metabase.models/keep-me)
 
 (defn- entity-id-table-names
-  "Return a set of lower-cased names of all application database tables that have an `entity_id` column."
+  "Return a set of lower-cased names of all application database tables that have an `entity_id` column, excluding views."
   []
   (with-open [conn (.getConnection mdb.connection/*application-db*)]
     (let [dbmeta (.getMetaData conn)]
-      (with-open [rset (.getColumns dbmeta nil nil nil (case (mdb.connection/db-type)
-                                                         :h2                "ENTITY_ID"
-                                                         (:mysql :postgres) "entity_id"))]
-        (into #{} (map (comp u/lower-case-en :table_name)) (resultset-seq rset))))))
+      (with-open [tables-rset (.getTables dbmeta nil nil nil (into-array String ["TABLE"]))]
+        (let [non-view-tables (into #{} (map (comp u/lower-case-en :table_name)) (resultset-seq tables-rset))]
+          (with-open [rset (.getColumns dbmeta nil nil nil (case (mdb.connection/db-type)
+                                                             :h2                "ENTITY_ID"
+                                                             (:mysql :postgres) "entity_id"))]
+            (let [entity-id-tables (into #{} (map (comp u/lower-case-en :table_name)) (resultset-seq rset))]
+              (set/intersection non-view-tables entity-id-tables))))))))
 
 (defn toucan-models
   "Return a list of all toucan models."
@@ -69,9 +73,9 @@
     (set entity-id-models)))
 
 (defn- seed-entity-id-for-instance! [model instance]
-  (try
-    (let [primary-key (first (t2/primary-keys model))
-          pk-value    (get instance primary-key)]
+  (let [primary-key (first (t2/primary-keys model))
+        pk-value    (get instance primary-key)]
+    (try
       (when-not (some? pk-value)
         (throw (ex-info (format "Missing value for primary key column %s" (pr-str primary-key))
                         {:model       (name model)
@@ -80,10 +84,12 @@
       (let [new-hash (serdes/identity-hash instance)]
         (log/infof "Update %s %s entity ID => %s" (name model) (pr-str pk-value) (pr-str new-hash))
         (t2/update! model pk-value {:entity_id new-hash}))
-      {:update-count 1})
-    (catch Throwable e
-      (log/errorf e "Error updating entity ID: %s" (ex-message e))
-      {:error-count 1})))
+      {:update-count 1}
+      (catch Throwable e
+        (let [data (ex-data e)]
+          (log/errorf e "Error updating entity ID for %s %s: %s %s" (name model) (pr-str pk-value) (ex-message e)
+                      (or (some-> data pr-str) "")))
+        {:error-count 1}))))
 
 (defn- seed-entity-ids-for-model! [model]
   (log/infof "Seeding Entity IDs for model %s" (name model))

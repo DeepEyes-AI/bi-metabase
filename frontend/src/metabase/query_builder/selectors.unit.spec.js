@@ -1,4 +1,6 @@
 import { assoc, assocIn } from "icepick";
+
+import { createMockEntitiesState } from "__support__/store";
 import {
   getQuestion,
   getIsResultDirty,
@@ -6,7 +8,12 @@ import {
   getNativeEditorSelectedText,
   getQuestionDetailsTimelineDrawerState,
 } from "metabase/query_builder/selectors";
-import { createMockEntitiesState } from "__support__/store";
+import Question from "metabase-lib/Question";
+import Aggregation from "metabase-lib/queries/structured/Aggregation";
+import Breakout from "metabase-lib/queries/structured/Breakout";
+import Filter from "metabase-lib/queries/structured/Filter";
+import Join from "metabase-lib/queries/structured/Join";
+import { createMockTable } from "metabase-types/api/mocks";
 import {
   createSampleDatabase,
   ORDERS,
@@ -18,15 +25,13 @@ import {
   createMockQueryBuilderState,
   createMockQueryBuilderUIControlsState,
 } from "metabase-types/store/mocks";
-import Question from "metabase-lib/Question";
-import Aggregation from "metabase-lib/queries/structured/Aggregation";
-import Breakout from "metabase-lib/queries/structured/Breakout";
-import Filter from "metabase-lib/queries/structured/Filter";
-import Join from "metabase-lib/queries/structured/Join";
 
 function getBaseState({ uiControls = {}, ...state } = {}) {
   return createMockState({
-    entities: createMockEntitiesState({ databases: [createSampleDatabase()] }),
+    entities: createMockEntitiesState({
+      databases: [createSampleDatabase()],
+      tables: [createMockTable({ id: "card__1" })],
+    }),
     qb: createMockQueryBuilderState({
       ...state,
       uiControls: createMockQueryBuilderUIControlsState({

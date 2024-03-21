@@ -1,8 +1,8 @@
 import "__support__/ui-mocks"; // included explicitly whereas with integrated tests it comes with __support__/integrated_tests
 
+import moment from "moment-timezone"; // eslint-disable-line no-restricted-imports -- deprecated usage
 import _ from "underscore";
-// eslint-disable-next-line no-restricted-imports -- deprecated usage
-import moment from "moment-timezone";
+
 import testAcrossTimezones from "__support__/timezones";
 import {
   NumberColumn,
@@ -12,6 +12,7 @@ import {
   getFormattedTooltips,
 } from "__support__/visualizations";
 import registerVisualizations from "metabase/visualizations/register";
+import { createMockCard } from "metabase-types/api/mocks";
 
 registerVisualizations();
 
@@ -232,10 +233,10 @@ const DEFAULT_SETTINGS = {
 function renderTimeseries(element, unit, timezone, rows, props = {}) {
   const series = [
     {
-      card: {
+      card: createMockCard({
         display: "bar",
         visualization_settings: { ...DEFAULT_SETTINGS },
-      },
+      }),
       data: {
         results_timezone: timezone,
         cols: [

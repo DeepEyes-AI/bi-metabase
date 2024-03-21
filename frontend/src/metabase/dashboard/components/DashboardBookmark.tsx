@@ -1,4 +1,5 @@
 import { useCallback } from "react";
+
 import BookmarkToggle from "metabase/core/components/BookmarkToggle";
 import type { Dashboard } from "metabase-types/api";
 
@@ -9,7 +10,7 @@ export interface DashboardBookmarkProps {
   onDeleteBookmark: (dashboard: Dashboard) => void;
 }
 
-const DashboardBookmark = ({
+export const DashboardBookmark = ({
   dashboard,
   isBookmarked,
   onCreateBookmark,
@@ -31,6 +32,3 @@ const DashboardBookmark = ({
     />
   );
 };
-
-// eslint-disable-next-line import/no-default-export -- deprecated usage
-export default DashboardBookmark;

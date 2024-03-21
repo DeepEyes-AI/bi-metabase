@@ -1,8 +1,10 @@
 import fetchMock from "fetch-mock";
 import _ from "underscore";
+
 import { SAVED_QUESTIONS_DATABASE } from "metabase/databases/constants";
-import type { Database, DatabaseUsageInfo } from "metabase-types/api";
 import { isTypeFK } from "metabase-lib/types/utils/isa";
+import type { Database, DatabaseUsageInfo } from "metabase-types/api";
+
 import { PERMISSION_ERROR } from "./constants";
 import { setupTableEndpoints } from "./table";
 
@@ -29,11 +31,12 @@ export function setupDatabaseUsageInfo(
 export function setupDatabasesEndpoints(
   dbs: Database[],
   { hasSavedQuestions = true } = {},
+  query: object = { saved: true },
 ) {
   fetchMock.get(
     {
       url: "path:/api/database",
-      query: { saved: true },
+      query,
       overwriteRoutes: false,
     },
     hasSavedQuestions ? [...dbs, SAVED_QUESTIONS_DATABASE] : dbs,

@@ -7,15 +7,10 @@
    [clojure.walk :as walk]
    [metabase.api.common :refer [*current-user-permissions-set*]]
    [metabase.models
-    :refer [Card
-            Collection
-            Dashboard
-            NativeQuerySnippet
-            Permissions
-            PermissionsGroup
-            Pulse
-            User]]
+    :refer [Card Collection Dashboard NativeQuerySnippet Permissions
+            PermissionsGroup Pulse User]]
    [metabase.models.collection :as collection]
+   [metabase.models.interface :as mi]
    [metabase.models.permissions :as perms]
    [metabase.models.serialization :as serdes]
    [metabase.test :as mt]
@@ -44,8 +39,8 @@
 (deftest format-personal-collection-name-length-test
   (testing "test that an unrealistically long collection name with unicode letters is still less than the max length for a slug (metabase#33917)"
     (mt/with-temporary-setting-values [site-locale "ru"]
-      (is (< (count (#'collection/slugify (collection/format-personal-collection-name (repeat 20 "\u0411") ; Cyrillic "b" character
-                                                                                      (repeat 20 "\u0411")
+      (is (< (count (#'collection/slugify (collection/format-personal-collection-name (apply str (repeat 34 "Б"))
+                                                                                      (apply str (repeat 35 "Б"))
                                                                                       "MetaBase@metabase.com"
                                                                                       :site)))
              (var-get #'collection/collection-slug-max-length))))))
@@ -738,13 +733,23 @@
 
 (deftest perms-for-archiving-exceptions-test
   (testing "If you try to calculate permissions to archive the Root Collection, throw an Exception!"
-    (is (thrown?
+    (is (thrown-with-msg?
          Exception
+         #"You cannot archive the Root Collection."
          (collection/perms-for-archiving collection/root-collection))))
 
+  (testing "Let's make sure we get an Exception when we try to archive the Custom Reports Collection"
+    (t2.with-temp/with-temp [Collection cr-collection {}]
+      (with-redefs [perms/default-custom-reports-collection (constantly cr-collection)]
+        (is (thrown-with-msg?
+             Exception
+             #"You cannot archive the Custom Reports Collection."
+             (collection/perms-for-archiving cr-collection))))))
+
   (testing "Let's make sure we get an Exception when we try to archive a Personal Collection"
-    (is (thrown?
+    (is (thrown-with-msg?
          Exception
+         #"You cannot archive a Personal Collection."
          (collection/perms-for-archiving (collection/user->personal-collection (mt/fetch-user :lucky))))))
 
   (testing "invalid input"
@@ -1491,7 +1496,7 @@
       (t2.with-temp/with-temp [Collection {collection-id :id} {:namespace "x"}]
         (is (thrown-with-msg?
              clojure.lang.ExceptionInfo
-             #"A Card can only go in Collections in the \"default\" namespace"
+             #"A Card can only go in Collections in the \"default\" or :analytics namespace."
              (collection/check-collection-namespace Card collection-id)))))
 
     (testing "Should throw exception if Collection does not exist"
@@ -1672,3 +1677,35 @@
           (is (= "e816af2d"
                  (serdes/raw-hash ["grandchild" :yolocorp c2-hash now])
                  (serdes/identity-hash c3))))))))
+
+(deftest instance-analytics-collections-test
+  (testing "Instance analytics and it's contents isn't writable, even for admins."
+    (t2.with-temp/with-temp [Collection audit-collection {:type "instance-analytics"}
+                             Card       audit-card       {:collection_id (:id audit-collection)}
+                             Dashboard  audit-dashboard  {:collection_id (:id audit-collection)}
+                             Collection cr-collection    {}
+                             Card       cr-card          {:collection_id (:id cr-collection)}
+                             Dashboard  cr-dashboard     {:collection_id (:id cr-collection)}]
+      (with-redefs [perms/default-audit-collection          (constantly audit-collection)
+                    perms/default-custom-reports-collection (constantly cr-collection)]
+        (mt/with-current-user (mt/user->id :crowberto)
+          (mt/with-additional-premium-features #{:audit-app}
+            (is (not (mi/can-write? audit-collection))
+                "Admin isn't able to write to audit collection")
+            (is (not (mi/can-write? audit-card))
+                "Admin isn't able to write to audit collection card")
+            (is (not (mi/can-write? audit-dashboard))
+                "Admin isn't able to write to audit collection dashboard"))
+          (mt/with-premium-features #{}
+            (is (not (mi/can-read? audit-collection))
+                "Admin isn't able to read audit collection when audit app isn't enabled")
+            (is (not (mi/can-read? audit-card))
+                "Admin isn't able to read audit collection card when audit app isn't enabled")
+            (is (not (mi/can-read? audit-dashboard))
+                "Admin isn't able to read audit collection dashboard when audit app isn't enabled")
+            (is (not (mi/can-read? cr-collection))
+                "Admin isn't able to read custom reports collection when audit app isn't enabled")
+            (is (not (mi/can-read? cr-card))
+                "Admin isn't able to read custom reports card when audit app isn't enabled")
+            (is (not (mi/can-read? cr-dashboard))
+                "Admin isn't able to read custom reports dashboard when audit app isn't enabled")))))))

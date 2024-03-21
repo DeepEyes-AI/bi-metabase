@@ -1,18 +1,17 @@
+import fetchMock from "fetch-mock";
 import { Route } from "react-router";
 
-import fetchMock from "fetch-mock";
+import { setupEnterpriseTest } from "__support__/enterprise";
+import { setupDatabasesEndpoints } from "__support__/server-mocks";
+import { mockSettings } from "__support__/settings";
 import { renderWithProviders, screen, waitFor } from "__support__/ui";
-import { createMockState } from "metabase-types/store/mocks";
 import {
   createMockDatabase,
   createMockTokenStatus,
   createMockUser,
 } from "metabase-types/api/mocks";
 import { createSampleDatabase } from "metabase-types/api/mocks/presets";
-
-import { setupDatabasesEndpoints } from "__support__/server-mocks";
-import { setupEnterpriseTest } from "__support__/enterprise";
-import { mockSettings } from "__support__/settings";
+import { createMockState } from "metabase-types/store/mocks";
 
 import { DatabasePromptBanner } from "./DatabasePromptBanner";
 
@@ -184,7 +183,7 @@ describe("DatabasePromptBanner", () => {
     expect(getHelpLink).toBeInTheDocument();
     expect(getHelpLink).toHaveAttribute(
       "href",
-      "https://metabase.com/help/connect",
+      "https://metabase.com/help/connect?email=admin%40metabase.test&site_url=http%3A%2F%2Flocalhost%3A3000",
     );
 
     const connectDatabaseLink = screen.getByRole("link", {
@@ -217,7 +216,7 @@ describe("DatabasePromptBanner", () => {
     expect(getHelpLink).toBeInTheDocument();
     expect(getHelpLink).toHaveAttribute(
       "href",
-      "https://metabase.com/help/connect",
+      "https://metabase.com/help/connect?email=admin%40metabase.test&site_url=http%3A%2F%2Flocalhost%3A3000",
     );
 
     expect(

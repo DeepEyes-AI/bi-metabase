@@ -1,7 +1,10 @@
-import type { IconName } from "metabase/core/components/Icon";
-import type { UserId } from "./user";
+import type { ColorName } from "metabase/lib/colors/types";
+import type { IconName } from "metabase/ui";
+
 import type { CardDisplayType } from "./card";
 import type { DatabaseId } from "./database";
+import type { TableId } from "./table";
+import type { UserId } from "./user";
 
 export type RegularCollectionId = number;
 
@@ -11,10 +14,28 @@ export type CollectionContentModel = "card" | "dataset";
 
 export type CollectionAuthorityLevel = "official" | null;
 
+export type CollectionType = "instance-analytics" | null;
+
+export type LastEditInfo = {
+  email: string;
+  first_name: string;
+  last_name: string;
+  id: UserId;
+  timestamp: string;
+};
+
 export type CollectionAuthorityLevelConfig = {
   type: CollectionAuthorityLevel;
   name: string;
-  icon: string;
+  icon: IconName;
+  color?: ColorName;
+  tooltips?: Record<string, string>;
+};
+
+export type CollectionInstanceAnaltyicsConfig = {
+  type: CollectionType;
+  name: string;
+  icon: IconName;
   color?: string;
   tooltips?: Record<string, string>;
 };
@@ -22,11 +43,14 @@ export type CollectionAuthorityLevelConfig = {
 export interface Collection {
   id: CollectionId;
   name: string;
+  slug?: string;
+  entity_id?: string;
   description: string | null;
   can_write: boolean;
   archived: boolean;
   children?: Collection[];
   authority_level?: "official" | null;
+  type?: "instance-analytics" | null;
 
   parent_id?: CollectionId;
   personal_owner_id?: UserId;
@@ -62,13 +86,16 @@ export interface CollectionItem {
   copy?: boolean;
   collection_position?: number | null;
   collection_preview?: boolean | null;
-  fully_parametrized?: boolean | null;
+  fully_parameterized?: boolean | null;
+  based_on_upload?: TableId | null; // only for models
   collection?: Collection | null;
   display?: CardDisplayType;
   personal_owner_id?: UserId;
   database_id?: DatabaseId;
   moderated_status?: string;
   type?: string;
+  can_write?: boolean;
+  "last-edit-info"?: LastEditInfo;
   getIcon: () => { name: IconName };
   getUrl: (opts?: Record<string, unknown>) => string;
   setArchived?: (isArchived: boolean) => void;

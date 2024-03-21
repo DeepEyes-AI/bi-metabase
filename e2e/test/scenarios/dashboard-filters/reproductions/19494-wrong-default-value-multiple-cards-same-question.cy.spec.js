@@ -1,16 +1,16 @@
 import {
+  ORDERS_DASHBOARD_ID,
+  ORDERS_QUESTION_ID,
+} from "e2e/support/cypress_sample_instance_data";
+import {
   restore,
   popover,
   editDashboard,
   saveDashboard,
   visitDashboard,
   updateDashboardCards,
+  undoToast,
 } from "e2e/support/helpers";
-
-import {
-  ORDERS_DASHBOARD_ID,
-  ORDERS_QUESTION_ID,
-} from "e2e/support/cypress_sample_instance_data";
 
 const filter1 = {
   name: "Card 1 Filter",
@@ -69,9 +69,11 @@ describe("issue 19494", () => {
 
     connectFilterToCard({ filterName: "Card 1 Filter", cardPosition: 0 });
     setDefaultFilter("Doohickey");
+    undoToast().findByText("Undo auto-connection").click();
 
     connectFilterToCard({ filterName: "Card 2 Filter", cardPosition: -1 });
     setDefaultFilter("Gizmo");
+    undoToast().findByText("Undo auto-connection").click();
 
     saveDashboard();
 

@@ -1,23 +1,31 @@
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-nocheck
 import { t } from "ttag";
+
+import type { AggregationOperator } from "metabase-lib/deprecated-types";
+import type Metric from "metabase-lib/metadata/Metric";
+import Filter from "metabase-lib/queries/structured/Filter";
+import * as AGGREGATION from "metabase-lib/queries/utils/aggregation";
+import { TYPE } from "metabase-lib/types/constants";
 import type {
   Aggregation as AggregationObject,
   FieldId,
   MetricId,
 } from "metabase-types/api";
-import { TYPE } from "metabase-lib/types/constants";
-import * as AGGREGATION from "metabase-lib/queries/utils/aggregation";
-import Filter from "metabase-lib/queries/structured/Filter";
-import type Metric from "metabase-lib/metadata/Metric";
-import type { AggregationOperator } from "metabase-lib/deprecated-types";
-import type StructuredQuery from "../StructuredQuery";
+
 import type Dimension from "../../Dimension";
 import { AggregationDimension } from "../../Dimension";
+import type StructuredQuery from "../StructuredQuery";
+
 import MBQLClause from "./MBQLClause";
 
 const INTEGER_AGGREGATIONS = new Set(["count", "cum-count", "distinct"]);
-const ORIGINAL_FIELD_TYPE_AGGREGATIONS = new Set(["min", "max"]);
+const ORIGINAL_FIELD_TYPE_AGGREGATIONS = new Set([
+  "sum",
+  "cum-sum",
+  "min",
+  "max",
+]);
 
 // eslint-disable-next-line import/no-default-export -- deprecated usage
 export default class Aggregation extends MBQLClause {
@@ -45,10 +53,6 @@ export default class Aggregation extends MBQLClause {
    */
   remove(): StructuredQuery {
     return this._query.removeAggregation(this._index);
-  }
-
-  canRemove() {
-    return this.remove().clean().isValid();
   }
 
   /**
@@ -307,9 +311,17 @@ export default class Aggregation extends MBQLClause {
       switch (this.expressionName()) {
         case "share":
         case "count-where":
-          return new Filter(this[1], null, this.query());
+          return new Filter(
+            this[1],
+            null,
+            this.legacyQuery({ useStructuredQuery: true }),
+          );
         case "sum-where":
-          return new Filter(this[2], null, this.query());
+          return new Filter(
+            this[2],
+            null,
+            this.legacyQuery({ useStructuredQuery: true }),
+          );
       }
     }
 
@@ -319,7 +331,11 @@ export default class Aggregation extends MBQLClause {
   metricFilters(): Filter[] | null {
     if (this.isMetric()) {
       const metric = this.metric();
-      return metric?.filters().map(filter => filter.setQuery(this.query()));
+      return metric
+        ?.filters()
+        .map(filter =>
+          filter.setQuery(this.legacyQuery({ useStructuredQuery: true })),
+        );
     }
 
     return null;

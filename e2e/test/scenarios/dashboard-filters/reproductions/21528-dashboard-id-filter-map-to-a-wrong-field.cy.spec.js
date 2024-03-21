@@ -1,3 +1,4 @@
+import { SAMPLE_DATABASE } from "e2e/support/cypress_sample_database";
 import {
   addOrUpdateDashboardCard,
   appBar,
@@ -7,7 +8,6 @@ import {
   popover,
   restore,
 } from "e2e/support/helpers";
-import { SAMPLE_DATABASE } from "e2e/support/cypress_sample_database";
 
 const { ORDERS, PRODUCTS } = SAMPLE_DATABASE;
 
@@ -125,6 +125,7 @@ describe("issue 21528", () => {
       .should("be.visible");
     cy.findByRole("navigation").findByText("Exit admin").click();
 
+    openNavigationSidebar();
     navigationSidebar().findByText("Our analytics").click();
     cy.findByRole("main").findByText(DASHBOARD_DETAILS.name).click();
 

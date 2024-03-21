@@ -8,6 +8,7 @@ export const createMockDashboardState = (
   dashcards: {},
   dashcardData: {},
   parameterValues: {},
+  draftParameterValues: {},
   loadingDashCards: {
     loadingIds: [],
     loadingStatus: "idle",
@@ -15,7 +16,7 @@ export const createMockDashboardState = (
     endTime: null,
   },
   loadingControls: {},
-  isEditing: null,
+  editingDashboard: null,
   isAddParameterPopoverOpen: false,
   isNavigatingBackToDashboard: false,
   slowCards: {},

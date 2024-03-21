@@ -1,3 +1,9 @@
+import { USERS } from "e2e/support/cypress_data";
+import {
+  NO_DATA_PERSONAL_COLLECTION_ID,
+  ADMIN_PERSONAL_COLLECTION_ID,
+  NORMAL_USER_ID,
+} from "e2e/support/cypress_sample_instance_data";
 import {
   restore,
   popover,
@@ -7,13 +13,6 @@ import {
   getCollectionActions,
   openCollectionMenu,
 } from "e2e/support/helpers";
-
-import { USERS } from "e2e/support/cypress_data";
-import {
-  NO_DATA_PERSONAL_COLLECTION_ID,
-  ADMIN_PERSONAL_COLLECTION_ID,
-  NORMAL_USER_ID,
-} from "e2e/support/cypress_sample_instance_data";
 
 describe("personal collections", () => {
   beforeEach(() => {
@@ -62,15 +61,13 @@ describe("personal collections", () => {
       });
 
       cy.visit("/collection/root");
-      // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
-      cy.findByText("Your personal collection");
+      cy.findByRole("tree").findByText("Your personal collection");
       navigationSidebar().within(() => {
         cy.icon("ellipsis").click();
       });
       popover().findByText("Other users' personal collections").click();
       cy.location("pathname").should("eq", "/collection/users");
-      // eslint-disable-next-line no-unscoped-text-selectors -- deprecated usage
-      cy.findByText(/All personal collections/i);
+      cy.findByTestId("browsercrumbs").findByText(/All personal collections/i);
       Object.values(USERS).forEach(user => {
         const FULL_NAME = `${user.first_name} ${user.last_name}`;
         cy.findByText(FULL_NAME);

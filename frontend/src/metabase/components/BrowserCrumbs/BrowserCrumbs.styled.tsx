@@ -1,7 +1,8 @@
 import styled from "@emotion/styled";
+
 import Link from "metabase/core/components/Link";
 import { color } from "metabase/lib/colors";
-import { Icon } from "metabase/core/components/Icon";
+import { Icon } from "metabase/ui";
 
 export const BrowserCrumbsRoot = styled.div`
   display: flex;
