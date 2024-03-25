@@ -4,7 +4,7 @@ import PublicAction from "metabase/public/containers/PublicAction";
 import PublicApp from "metabase/public/containers/PublicApp";
 import PublicDashboard from "metabase/public/containers/PublicDashboard";
 import { PublicQuestion } from "metabase/public/containers/PublicQuestion";
-
+import { t } from "ttag";
 import { getApplicationName } from "./selectors/whitelabel";
 
 export const getRoutes = store => {
