@@ -128,7 +128,7 @@
     (do
       {:valid         true
        :status        "Activate"
-       :features ["audit-app", "advanced-permissions", "embedding", "cache-granular-controls", "sso-google", "sso-jwt", "disable-password-login", "dashboard-subscription-filters", "official-collections", "snippet-collections", "serialization", "email-restrict-recipients"]
+       :features ["whitelabeling", "audit-app", "advanced-permissions", "embedding", "cache-granular-controls", "sso-google", "sso-jwt", "disable-password-login", "dashboard-subscription-filters", "official-collections", "snippet-collections", "serialization", "email-restrict-recipients"]
        :trial    false })
     (let [fut    (future
                    (try (fetch-token-and-parse-body token token-check-url)
